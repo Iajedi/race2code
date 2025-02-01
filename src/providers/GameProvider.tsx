@@ -11,7 +11,11 @@ interface Question {
   isMCQ: boolean;
   question: string;
   options: string[];
+  correctAnswerIdx: number;
+  explanation: string;
 }
+
+
 
 export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   // Parameters:
@@ -44,9 +48,11 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
       "isMCQ": boolean (all of them must be true),
       "question": "Your question here?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswerIdx": Index 0-3 for the correct answer
+      "correctAnswerIdx": Index 0-3 for the correct answer,
+      "explanation": "Explanation for the correct answer"
     }
-    Do not surround your response with \`\`\`json
+    Do not surround your response with \`\`\`json.
+    Strictly reply with pure text.
     Ensure options are distinct and only one correct answer is provided.
     
     Here is a sample JSON in the array:
@@ -54,7 +60,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
       "isMCQ": true,
       "question": "What is the faster programming language?",
       "options": ["Perl", "Python", "Swift", "C"],
-      "correctAnswerIdx": 3
+      "correctAnswerIdx": 3,
+      "explanation": "Explanation for the correct answer"
     }`;
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
