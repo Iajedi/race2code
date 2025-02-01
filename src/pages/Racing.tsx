@@ -333,7 +333,6 @@ export default function RacingGame(props: RacingGameProps) {
             </button>
           </div>
         )}
-      </div>
 
       {/* Controls Container */}
       <div className="w-full h-1/2 bg-white p-4 relative overflow-hidden">
