@@ -21,6 +21,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   const [isQuestionsGenerated, setIsQuestionsGenerated] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [score, setScore] = useState(0)
+  const [isCorrect, setIsCorrect] = useState<boolean>(false);
+  const [isIncorrect, setIsIncorrect] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isQuestionsGenerated) {
@@ -29,8 +32,8 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   }, [isQuestionsGenerated])
 
   useEffect(() => {
-    console.log("currentQuestionIdx updated:", currentQuestionIdx)
-  }, [currentQuestionIdx])
+    console.log("Score:", score)
+  }, [score])
 
   const fetchQuestions = useCallback(async () => {
     const prompt = `
@@ -52,7 +55,6 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
       "question": "What is the faster programming language?",
       "options": ["Perl", "Python", "Swift", "C"],
       "correctAnswerIdx": 3
-    
     }`;
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -89,7 +91,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   }, [])
 
   return (
-    <GameContext.Provider value={{ isQuestionsGenerated, setIsQuestionsGenerated, currentQuestionIdx, setCurrentQuestionIdx, questions }}>
+    <GameContext.Provider value={{ isQuestionsGenerated, setIsQuestionsGenerated, currentQuestionIdx, setCurrentQuestionIdx, questions, score, setScore, isCorrect, setIsCorrect, isIncorrect, setIsIncorrect }}>
       {children}
     </GameContext.Provider>
   );

@@ -32,8 +32,32 @@ const INITIAL_STATE: GameState = {
 };
 
 import { useState, useEffect, useRef } from 'react';
+import { useGameContext } from '../providers/GameProvider';
 
 export default function RacingGame(props: RacingGameProps) {
+  const { isCorrect, setIsCorrect, isIncorrect, setIsIncorrect } = useGameContext();
+
+  useEffect(() => {
+    if (isCorrect) {
+      setIsIncorrect(false)
+      const timer = setTimeout(() => {
+        setIsCorrect(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isCorrect])
+
+  useEffect(() => {
+    if (isIncorrect) {
+      setIsCorrect(false)
+      const timer = setTimeout(() => {
+        setIsIncorrect(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isIncorrect])
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
@@ -142,9 +166,9 @@ export default function RacingGame(props: RacingGameProps) {
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center">
+    <div className="w-full flex flex-col items-center justify-center">
       {/* Racing Scene - Added relative positioning and z-index management */}
-      <div className="w-full h-1/2 bg-gray-800 relative overflow-hidden">
+      <div style={{height: 200}} className="w-full bg-gray-800 relative overflow-hidden">
         {/* Track - Lowered z-index */}
         <div
           className="absolute inset-0 z-0"
@@ -201,6 +225,19 @@ export default function RacingGame(props: RacingGameProps) {
             </div>
           </div>
         )}
+
+        <div className="absolute inset-0 flex items-center justify-center z-100">
+          {isCorrect && (
+            <div className="bg-green-500 rounded px-4 py-2">
+              <p className="text-white">Correct!</p>
+            </div>
+          )}
+          {isIncorrect && (
+            <div className="bg-red-500 rounded px-4 py-2">
+              <p className="text-white">Incorrect!</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Controls Container */}
@@ -227,14 +264,6 @@ export default function RacingGame(props: RacingGameProps) {
             Play Again
           </button>
         )}
-
-        {/* Progress bar */}
-        <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-100"
-            style={{ width: `${(gameState.distance / GAME_CONSTANTS.FINISH_LINE) * 100}%` }}
-          />
-        </div>
       </div>
     </div>
   );
