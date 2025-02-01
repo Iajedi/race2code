@@ -4,15 +4,21 @@ interface GameState {
   velocity: number;
   isAccelerating: boolean;
   isGameComplete: boolean;
+  currCheckpoint: number;
+}
+
+interface RacingGameProps {
+  numCheckpoints: number;
+  topicId: string;
 }
 
 // Define our physics constants
 const GAME_CONSTANTS = {
   // Increased acceleration for more exciting gameplay
-  ACCELERATION: 400, // Increased from 20 to 200 pixels/second²
-  DECELERATION: -50, // Increased from -10 to -100 pixels/second²
+  ACCELERATION: 600, // Increased from 20 to 200 pixels/second²
+  DECELERATION: -25, // Increased from -10 to -100 pixels/second²
   FINISH_LINE: 10000,
-  MAX_VELOCITY: 800, // Added maximum velocity cap
+  MAX_VELOCITY: 1200, // Added maximum velocity cap
   FPS: 60
 } as const;
 
@@ -21,18 +27,20 @@ const INITIAL_STATE: GameState = {
   distance: 0,
   velocity: 0,
   isAccelerating: false,
-  isGameComplete: false
+  isGameComplete: false,
+  currCheckpoint: 1,
 };
 
 import { useState, useEffect, useRef } from 'react';
 
-const RacingGame: React.FC = (numCheckpoints) => {
+export default function RacingGame(props: RacingGameProps) {
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
     velocity: 0,
     isAccelerating: false,
-    isGameComplete: false
+    isGameComplete: false,
+    currCheckpoint: 1,
   });
 
   // Use refs for animation frame handling
@@ -90,6 +98,18 @@ const RacingGame: React.FC = (numCheckpoints) => {
         };
       }
 
+      var currCheckpointDist = GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * prevState.currCheckpoint;
+      const CKPT_DIST_PADDING = 100;
+      if (newDistance >= currCheckpointDist - CKPT_DIST_PADDING && (prevState.currCheckpoint - 1) < props.numCheckpoints) {
+        var nextCheckpoint = prevState.currCheckpoint + 1;
+        return {
+          ...prevState,
+          currCheckpoint: nextCheckpoint,
+          distance: currCheckpointDist - CKPT_DIST_PADDING + 1,
+          velocity: 0
+        };
+      }
+
       return {
         ...prevState,
         distance: newDistance,
@@ -130,53 +150,52 @@ const RacingGame: React.FC = (numCheckpoints) => {
           className="absolute inset-0 z-0"
           style={{
             // Replace the gradient with your image URL
-            backgroundImage: `url('/track.png')`,
+            backgroundImage: `url('src/assets/track.png')`,
             backgroundRepeat: 'repeat-x',
             backgroundSize: "contain",
             transform: `translateX(-${gameState.distance}px)`,
-            width: '700%', // Make sure we have enough room for the repeating background
+            width: '800%', // Make sure we have enough room for the repeating background
             height: "100%",
             transition: 'transform 16ms linear'
           }}
         />
 
-        {/* Finish line - Middle z-index */}
         <div
-          className="absolute top-0 h-full w-8 bg-red-600 z-10"
+          className="absolute top-0 h-full z-10"
           style={{
+            backgroundImage: `url('src/assets/finish_line.png')`,
+            width: "60px",
+            height: "600px",
             left: `calc(50% + ${GAME_CONSTANTS.FINISH_LINE - gameState.distance}px)`
           }}
         />
 
+        {
+          Array.from({ length: props.numCheckpoints }).map((_, index) =>
+            <div
+              className="absolute top-0 h-full w-8 bg-red-600 z-10" key={index}
+              style={{
+                left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * (index + 1)) - gameState.distance}px)`
+              }}
+            ></div>
+          )}
+
         {/* Car - Highest z-index and improved visibility */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="relative w-[200px] h-[100px]">
-            {/* Main body with shadow for depth */}
-            <div className="absolute bottom-0 w-full h-[60px] bg-red-500 rounded-lg shadow-xl" />
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20' style={{
+          backgroundImage: `url('src/assets/car.png')`,
+          width: "200px",
+          height: "100px",
+        }} />
 
-            {/* Hood with gradient for better visibility */}
-            <div className="absolute bottom-[40px] left-[40px] w-[120px] h-[40px] bg-gradient-to-r from-red-600 to-red-500 rounded-t-lg" />
-
-            {/* Windows with glare effect */}
-            <div className="absolute bottom-[45px] left-[60px] w-[80px] h-[30px] bg-blue-400 rounded-sm 
-                          before:content-[''] before:absolute before:inset-0 before:bg-white before:opacity-20" />
-
-            {/* Wheels with rotation animation */}
-            <div className="absolute bottom-[-10px] left-[30px] w-[40px] h-[40px] bg-gray-800 rounded-full 
-                          border-4 border-gray-700" />
-            <div className="absolute bottom-[-10px] right-[30px] w-[40px] h-[40px] bg-gray-800 rounded-full 
-                          border-4 border-gray-700" />
-          </div>
+        {/* Question number indicator */}
+        {!gameState.isGameComplete && <div className="absolute bottom-4 right-4 text-white text-lg font-bold z-30">
+          Round: {gameState.currCheckpoint - 1}/{props.numCheckpoints}
         </div>
-
-        {/* Speed indicator */}
-        <div className="absolute top-4 left-4 text-white text-lg font-bold z-30">
-          Speed: {Math.round(gameState.velocity)} px/s
-        </div>
+        }
 
         {/* Game complete overlay */}
         {gameState.isGameComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40">
             <div className="text-white text-4xl font-bold">
               Finish!
             </div>
@@ -220,5 +239,3 @@ const RacingGame: React.FC = (numCheckpoints) => {
     </div>
   );
 };
-
-export default RacingGame;
