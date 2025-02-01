@@ -10,9 +10,9 @@ const NotFound = () => <h2>404 - Page Not Found</h2>;
 function App() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    navigate("/mcq"); // Auto-redirect to /mcq on load
-  }, [navigate]);
+  // useEffect(() => {
+  //   navigate("/programming"); // Auto-redirect to /mcq on load
+  // }, [navigate]);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <nav className="mb-4">

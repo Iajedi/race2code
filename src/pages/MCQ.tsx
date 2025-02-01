@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import "../App.css"
 
 // const API_KEY = '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'
-const API_KEY = import.meta.env.OPENAI_API_KEY
-console.log(API_KEY)
+const API_KEY = import.meta.env.VITE_OPENAI_API_KEY
+
 
 // Function to randomly generate a multiple-choice question
 function MCQ() {
@@ -49,7 +49,7 @@ function MCQ() {
             Authorization: `Bearer ${API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'gpt-4o-latest',
+            model: 'gpt-4o',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
           }),
