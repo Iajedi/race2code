@@ -11,7 +11,7 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/mcq"); // Auto-redirect to /mcq on load
+    navigate("/racing"); // Auto-redirect to /mcq on load
   }, [navigate]);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
