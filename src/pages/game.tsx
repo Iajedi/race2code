@@ -41,6 +41,8 @@ const INITIAL_STATE: GameState = {
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { GameProvider, useGameContext } from '../providers/GameProvider';
 import MCQ from './MCQ';
+import Modal from '../components/Modal';
+import { useNavigate } from 'react-router-dom';
 
 export default function GameWrapper() {
   return (
@@ -66,9 +68,14 @@ function RacingGame(props: RacingGameProps) {
     [questions, currentQuestionIdx]
   );
 
+  const [isExplanationOpen, setIsExplanationOpen] = useState(false);
+
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (isCorrect) {
       setIsIncorrect(false);
+      setIsExplanationOpen(true);
       const timer = setTimeout(() => {
         setIsCorrect(false);
       }, 1000);
@@ -86,11 +93,10 @@ function RacingGame(props: RacingGameProps) {
         setIsIncorrect(false);
       }, 1000);
 
-      handleAccelerateStart();
-
       return () => clearTimeout(timer);
     }
   }, [isIncorrect]);
+
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
@@ -375,8 +381,8 @@ function RacingGame(props: RacingGameProps) {
       {/* Controls Container */}
       <div className='w-full bg-white relative overflow-hidden'>
         <div
-          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-${
-            gameState.isDoorClosed ? 'auto' : 'none'
+          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
+            gameState.isDoorClosed ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
           style={{
             backgroundImage: `url('src/assets/door_left.png')`,
@@ -403,6 +409,20 @@ function RacingGame(props: RacingGameProps) {
             transition: 'transform 250ms ease-in-out',
           }}
         />
+        <Modal 
+          isOpen={isExplanationOpen} 
+          onClose={() => {
+            if (currentQuestionIdx < questions.length - 1) {
+              setIsExplanationOpen(false)
+            } else {
+              navigate('/results')
+            }
+          }}
+          title={'Explanation'}
+          description={question?.explanation || ''}
+          >
+          <div/>
+        </Modal>
 
         {question &&
           (question.isMCQ ? <MCQ /> : <div>Programming question</div>)}

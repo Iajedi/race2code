@@ -24,7 +24,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   const topic = 'Basic Programming Concepts';
   const [isQuestionsGenerated, setIsQuestionsGenerated] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<Question[]|null>(null);
   const [score, setScore] = useState(0)
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [isIncorrect, setIsIncorrect] = useState<boolean>(false);
