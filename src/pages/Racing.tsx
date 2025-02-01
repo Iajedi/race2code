@@ -6,6 +6,8 @@ interface GameState {
   isGameComplete: boolean;
   currCheckpoint: number;
   isDoorClosed: boolean;
+  isCountingDown: boolean;
+  countdownValue: number | 'GO!' | null;
 }
 
 interface RacingGameProps {
@@ -20,7 +22,8 @@ const GAME_CONSTANTS = {
   DECELERATION: -25, // Increased from -10 to -100 pixels/second²
   FINISH_LINE: 10000,
   MAX_VELOCITY: 1200, // Added maximum velocity cap
-  FPS: 60
+  FPS: 60,
+  COUNTDOWN_DURATION: 1000 // MS
 } as const;
 
 // Define our initial state as a constant to ensure consistent reset
@@ -31,11 +34,37 @@ const INITIAL_STATE: GameState = {
   isGameComplete: false,
   currCheckpoint: 1,
   isDoorClosed: true,
+  isCountingDown: true, // Start with countdown active
+  countdownValue: 3    // Start from 3
 };
 
 import { useState, useEffect, useRef } from 'react';
+import { useGameContext } from '../providers/GameProvider';
 
 export default function RacingGame(props: RacingGameProps) {
+  const { isCorrect, setIsCorrect, isIncorrect, setIsIncorrect } = useGameContext();
+
+  useEffect(() => {
+    if (isCorrect) {
+      setIsIncorrect(false)
+      const timer = setTimeout(() => {
+        setIsCorrect(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isCorrect])
+
+  useEffect(() => {
+    if (isIncorrect) {
+      setIsCorrect(false)
+      const timer = setTimeout(() => {
+        setIsIncorrect(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isIncorrect])
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
@@ -44,11 +73,47 @@ export default function RacingGame(props: RacingGameProps) {
     isGameComplete: false,
     currCheckpoint: 1,
     isDoorClosed: true,
+    isCountingDown: true, // Start with countdown active
+    countdownValue: 3    // Start from 3
   });
 
   // Use refs for animation frame handling
   const animationFrameRef = useRef<number>();
   const lastUpdateTimeRef = useRef<number>(Date.now());
+
+  // Handle the countdown sequence
+  useEffect(() => {
+    // Only proceed if we're in countdown mode
+    if (gameState.isCountingDown && gameState.countdownValue !== null) {
+      const timer = setTimeout(() => {
+        setGameState(prev => {
+          // If current value is 1, show 'GO!' next
+          if (prev.countdownValue === 1) {
+            return {
+              ...prev,
+              countdownValue: 'GO!',
+              velocity: 600 // Set initial velocity on GO!
+            };
+          }
+          // If current value is 'GO!', end countdown
+          if (prev.countdownValue === 'GO!') {
+            return {
+              ...prev,
+              isCountingDown: false,
+              countdownValue: null
+            };
+          }
+          // Otherwise, decrease the counter by 1
+          return {
+            ...prev,
+            countdownValue: typeof prev.countdownValue === 'number' ? prev.countdownValue - 1 : null
+          };
+        });
+      }, GAME_CONSTANTS.COUNTDOWN_DURATION);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.countdownValue, gameState.isCountingDown]);
 
   // Add a reset function to handle game restart
   const handleReset = (): void => {
@@ -63,6 +128,24 @@ export default function RacingGame(props: RacingGameProps) {
     // Start a new animation frame
     animationFrameRef.current = requestAnimationFrame(updatePhysics);
   };
+
+  // Start physics loop when component mounts or resets
+  useEffect(() => {
+    // Clear any existing animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    // Reset the last update time
+    lastUpdateTimeRef.current = Date.now();
+    // Start the physics loop
+    animationFrameRef.current = requestAnimationFrame(updatePhysics);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [gameState.isCountingDown]); // Re-run when countdown state changes
 
   // Physics update function using SUVAT equations
   const updatePhysics = (): void => {
@@ -125,14 +208,6 @@ export default function RacingGame(props: RacingGameProps) {
   };
 
   // Effect for handling the game loop
-  useEffect(() => {
-    animationFrameRef.current = requestAnimationFrame(updatePhysics);
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [gameState.isAccelerating]);
 
   // Event handlers with proper typing
   const handleAccelerateStart = (): void => {
@@ -146,9 +221,9 @@ export default function RacingGame(props: RacingGameProps) {
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center">
+    <div className="w-full flex flex-col items-center justify-center">
       {/* Racing Scene - Added relative positioning and z-index management */}
-      <div className="w-full h-1/2 bg-gray-800 relative overflow-hidden">
+      <div style={{height: 200}} className="w-full bg-gray-800 relative overflow-hidden">
         {/* Track - Lowered z-index */}
         <div
           className="absolute inset-0 z-0"
@@ -197,6 +272,35 @@ export default function RacingGame(props: RacingGameProps) {
         </div>
         }
 
+        {gameState.countdownValue !== null && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div
+              className="text-8xl font-bold text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] transform scale-150 transition-all duration-300"
+              style={{
+                animation: 'countdown 1s ease',
+                animationIterationCount: "infinite",
+                animationDuration: "1s",
+              }}
+            >
+              {gameState.countdownValue}
+            </div>
+          </div>
+        )}
+
+        <div className="absolute inset-0 flex items-center justify-center z-100">
+          {isCorrect && (
+            <div className="bg-green-500 rounded px-4 py-2">
+              <p className="text-white">Correct!</p>
+            </div>
+          )}
+          {isIncorrect && (
+            <div className="bg-red-500 rounded px-4 py-2">
+              <p className="text-white">Incorrect!</p>
+            </div>
+          )}
+        </div>
+      </div>
+
         <button
           onMouseDown={handleAccelerateStart}
           onMouseUp={handleAccelerateEnd}
@@ -212,7 +316,7 @@ export default function RacingGame(props: RacingGameProps) {
 
         {/* Game complete overlay */}
         {gameState.isGameComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40" style={{
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-40" style={{
             animation: "fadeInAnimation ease 1s",
             animationIterationCount: "1",
             animationFillMode: "forwards",
@@ -229,7 +333,6 @@ export default function RacingGame(props: RacingGameProps) {
             </button>
           </div>
         )}
-      </div>
 
       {/* Controls Container */}
       <div className="w-full h-1/2 bg-white p-4 relative overflow-hidden">

@@ -32,6 +32,7 @@ const DraggableWord = ({ word }) => {
     }),
   }));
 
+
   return (
     <div
       ref={drag}
