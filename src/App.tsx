@@ -1,13 +1,20 @@
 import './App.css'
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { useEffect } from 'react';
 import RacingGame from './pages/Racing';
 import MCQ from './pages/MCQ';
+import Programming from './pages/Programming';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
 
 function App() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/mcq"); // Auto-redirect to /mcq on load
+  }, [navigate]);
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen">
       <nav className="mb-4">
         <Link to="/" className="mr-4">Home</Link>
         <Link to="/about">About</Link>
@@ -16,6 +23,7 @@ function App() {
       <Routes>
         <Route path="/racing" element={<RacingGame />} />
         <Route path="/mcq" element={<MCQ />} />
+        <Route path="/programming" element={<Programming />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
