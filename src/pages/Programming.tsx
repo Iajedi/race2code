@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { DragEvent, useCallback, useEffect, useState } from 'react'
 import "../App.css"
 
 // const API_KEY = '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'
@@ -14,17 +14,17 @@ function Programming() {
 
   const components = ['5', 'i', 'int'];
 
-  const handleDragStart = (e, value) => {
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, value: string) => {
     e.dataTransfer.setData('text/plain', value);
   };
 
-  const handleDrop = (e, blankKey) => {
+  const handleDrop = (e: DragEvent<HTMLSpanElement>, blankKey: string) => {
     const value = e.dataTransfer.getData('text/plain');
     setBlanks((prev) => ({ ...prev, [blankKey]: value }));
     e.preventDefault();
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: DragEvent<HTMLSpanElement>) => {
     e.preventDefault();
   };
 
@@ -100,30 +100,90 @@ function Programming() {
   }, [fetchQuestion])
 
 
+
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center min-h-screen bg-green-800">
-      <div className="">
-        <h2 className="text-xl font-semibold text-center mb-4">{question}</h2>
-        <div className="grid grid-cols-2 gap-4 bg-red-900">
-          hi
-          {options.map((option, index) => (
-            <button
-              key={index}
-              className={`p-4 text-lg font-medium rounded-lg shadow-md transition duration-200`}
-              onClick={() => handleOptionClick(index)}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-        {selectedOption && (
-          <p className="mt-4 text-center text-lg font-semibold">
-            {isCorrect ? "✅ Correct!" : "❌ Incorrect! Try again."}
-          </p>
-        )}
+    <div style={{ padding: 20, fontFamily: 'Arial' }}>
+      <h1>🧩 Fill-in-the-Blank (Drag & Drop)</h1>
+      <p>Drag the correct components into the blanks to complete the code:</p>
+
+      <pre
+        style={{
+          background: '#f4f4f4',
+          padding: '10px',
+          borderRadius: '5px',
+          fontSize: '16px',
+        }}
+      >
+        {'int i = 0;\nwhile ('}
+        <span
+          onDrop={(e) => handleDrop(e, 'blank1')}
+          onDragOver={handleDragOver}
+          style={{
+            display: 'inline-block',
+            minWidth: '40px',
+            padding: '5px',
+            backgroundColor: '#ddd',
+            border: '1px dashed #999',
+            textAlign: 'center',
+          }}
+        >
+          {blanks.blank1 || '____'}
+        </span>
+        {' < '}
+        <span
+          onDrop={(e) => handleDrop(e, 'blank2')}
+          onDragOver={handleDragOver}
+          style={{
+            display: 'inline-block',
+            minWidth: '40px',
+            padding: '5px',
+            backgroundColor: '#ddd',
+            border: '1px dashed #999',
+            textAlign: 'center',
+          }}
+        >
+          {blanks.blank2 || '____'}
+        </span>
+        {') {\n  i++;\n}'}
+      </pre>
+
+      <h3>🧱 Components:</h3>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        {components.map((comp, index) => (
+          <div
+            key={index}
+            draggable
+            onDragStart={(e) => handleDragStart(e, comp)}
+            style={{
+              padding: '10px 15px',
+              backgroundColor: '#90caf9',
+              borderRadius: '5px',
+              cursor: 'grab',
+              userSelect: 'none',
+              border: '1px solid #1976d2',
+            }}
+          >
+            {comp}
+          </div>
+        ))}
       </div>
+
+      <button
+        onClick={checkAnswer}
+        style={{
+          marginTop: '20px',
+          padding: '10px 20px',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer',
+        }}
+      >
+        Submit Answer
+      </button>
     </div>
-  )
+  );
 }
 
 export default Programming
