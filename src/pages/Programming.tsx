@@ -75,13 +75,10 @@ export default function Programming() {
   const [words, setWords] = useState([]);
 
   const fetchCodeData = useCallback(async () => {
-    const prompt = `Generate a simple Python code snippet on a beginner level, maximum 5 lines. 
-    Give your response in a string.
-    Here is a sample response:
+    const prompt = `Generate a different simple Python code snippet suitable for beginners. 
+    Ensure it's unique from common examples like 'greet' functions. It can involve simple loops, conditionals, or basic math. 
+    Keep it under 5 lines and return it as plain text. Do not include any comments or python tags.`;
     
-    def greet(name):
-    print(f"Hello, {name}!")
-    greet("Alice")`;
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -93,7 +90,7 @@ export default function Programming() {
         body: JSON.stringify({
           model: 'gpt-4o',
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
+          temperature: 0.9
         })
       });
 
