@@ -4,6 +4,7 @@ import Racing from './pages/Racing';
 import MCQ from './pages/MCQ';
 import Programming from './pages/Programming';
 import StartScreen from './pages/StartScreen';
+import CourseSelection from './pages/CourseSelection';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
 
@@ -20,6 +21,7 @@ function App() {
         <Route path="/racing" element={<Racing numCheckpoints={5} topicId='' />} />
         <Route path="/mcq" element={<MCQ />} />
         <Route path="/programming" element={<Programming />} />
+        <Route path="/courses" element={<CourseSelection />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

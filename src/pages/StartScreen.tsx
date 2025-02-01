@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/button';
 
 const StartScreen: React.FC = () => {
   const navigate = useNavigate();
 
   const handleStartGame = () => {
-    navigate('/racing');
+    navigate('/courses');
   };
 
   return (
@@ -17,16 +18,11 @@ const StartScreen: React.FC = () => {
         <p className="text-xl text-gray-300 mb-8">
           Are you ready to hit the track?
         </p>
-
-        <button
+        <Button 
           onClick={handleStartGame}
-          className="px-8 py-4 bg-red-600 text-white text-2xl rounded-lg
-                   hover:bg-red-700 transition-all duration-300 ease-in-out
-                   transform hover:scale-105 hover:shadow-xl
-                   border-2 border-red-400"
         >
           Start Racing
-        </button>
+        </Button>
       </div>
     </div>
   );
