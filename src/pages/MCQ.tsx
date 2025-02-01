@@ -33,7 +33,7 @@ function MCQ() {
   }, [isCorrectFirstTime, question]);
 
   return (
-    <div className="w-screen h-auto flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
+    <div className="w-full flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
       <h2 className="text-xl font-semibold w-full text-left text-white">{question ? question.question : "Loading..."}</h2>
       <div className="grid grid-cols-2 gap-4 h-96 w-full">
         {question && question.options.map((option: string, index: number) => (
