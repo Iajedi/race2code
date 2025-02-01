@@ -5,6 +5,7 @@ interface GameState {
   isAccelerating: boolean;
   isGameComplete: boolean;
   currCheckpoint: number;
+  isDoorClosed: boolean;
 }
 
 interface RacingGameProps {
@@ -29,6 +30,7 @@ const INITIAL_STATE: GameState = {
   isAccelerating: false,
   isGameComplete: false,
   currCheckpoint: 1,
+  isDoorClosed: true,
 };
 
 import { useState, useEffect, useRef } from 'react';
@@ -41,6 +43,7 @@ export default function RacingGame(props: RacingGameProps) {
     isAccelerating: false,
     isGameComplete: false,
     currCheckpoint: 1,
+    isDoorClosed: true,
   });
 
   // Use refs for animation frame handling
@@ -106,6 +109,7 @@ export default function RacingGame(props: RacingGameProps) {
           ...prevState,
           currCheckpoint: nextCheckpoint,
           distance: currCheckpointDist - CKPT_DIST_PADDING + 1,
+          isDoorClosed: false,
           velocity: 0
         };
       }
@@ -133,7 +137,7 @@ export default function RacingGame(props: RacingGameProps) {
   // Event handlers with proper typing
   const handleAccelerateStart = (): void => {
     if (!gameState.isGameComplete) {
-      setGameState(prev => ({ ...prev, velocity: 500 }));
+      setGameState(prev => ({ ...prev, velocity: 500, isDoorClosed: true }));
     }
   };
 
@@ -173,7 +177,7 @@ export default function RacingGame(props: RacingGameProps) {
         {
           Array.from({ length: props.numCheckpoints }).map((_, index) =>
             <div
-              className="absolute top-0 h-full w-8 bg-red-600 z-10" key={index}
+              className="absolute top-0 h-full w-8 bg-red-800 z-10" key={index}
               style={{
                 left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * (index + 1)) - gameState.distance}px)`
               }}
@@ -193,18 +197,6 @@ export default function RacingGame(props: RacingGameProps) {
         </div>
         }
 
-        {/* Game complete overlay */}
-        {gameState.isGameComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40">
-            <div className="text-white text-4xl font-bold">
-              Finish!
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Controls Container */}
-      <div className="w-full h-1/2 bg-white p-4">
         <button
           onMouseDown={handleAccelerateStart}
           onMouseUp={handleAccelerateEnd}
@@ -212,29 +204,54 @@ export default function RacingGame(props: RacingGameProps) {
           onTouchStart={handleAccelerateStart}
           onTouchEnd={handleAccelerateEnd}
           disabled={gameState.isGameComplete}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
-                     disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="absolute bottom-4 left-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+                     disabled:bg-gray-400 disabled:cursor-not-allowed z-30"
         >
           Hold to Accelerate
         </button>
 
+        {/* Game complete overlay */}
         {gameState.isGameComplete && (
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40" style={{
+            animation: "fadeInAnimation ease 1s",
+            animationIterationCount: "1",
+            animationFillMode: "forwards",
+          }}>
+            <div className="text-white text-4xl font-bold">
+              Finish!
+            </div>
+            <button
+              onClick={handleReset}
+              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
                        transition-all duration-300 ease-in-out"
-          >
-            Play Again
-          </button>
+            >
+              Play Again
+            </button>
+          </div>
         )}
+      </div>
 
-        {/* Progress bar */}
-        <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-100"
-            style={{ width: `${(gameState.distance / GAME_CONSTANTS.FINISH_LINE) * 100}%` }}
-          />
-        </div>
+      {/* Controls Container */}
+      <div className="w-full h-1/2 bg-white p-4 relative overflow-hidden">
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0' style={{
+          backgroundImage: `url('src/assets/door_left.png')`,
+          backgroundSize: "100% 100%",
+          width: "100%",
+          height: "100%",
+          transform: `translateX(${gameState.isDoorClosed ? 0 : -50}%)`,
+          imageRendering: "pixelated",
+          transition: 'transform 250ms ease-in-out'
+        }} />
+
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0' style={{
+          backgroundImage: `url('src/assets/door_right.png')`,
+          backgroundSize: "100% 100%",
+          width: "100%",
+          height: "100%",
+          transform: `translateX(${gameState.isDoorClosed ? 0 : 50}%)`,
+          imageRendering: "pixelated",
+          transition: 'transform 250ms ease-in-out'
+        }} />
       </div>
     </div>
   );

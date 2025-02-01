@@ -71,6 +71,16 @@ button:focus-visible {
   outline: 4px solid #ffcc00;
 }
 
+@keyframes fadeInAnimation {
+  0% {
+      opacity: 0;
+  }
+
+  100% {
+      opacity: 1;
+  }
+}
+/* 
 @media (prefers-color-scheme: light) {
   :root {
     color: #222;
@@ -88,4 +98,4 @@ button:focus-visible {
     background-color: #ff6600;
     box-shadow: 4px 4px 0px #222;
   }
-}
+} */
