@@ -1,10 +1,17 @@
 import './App.css'
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import RacingGame from './pages/Racing';
-import MCQ from './pages/MCQ';
-import Programming from './pages/Programming';
+// <<<<<<< HEAD
+// import { Routes, Route, Link, useNavigate } from "react-router-dom";
+// import RacingGame from './pages/Racing';
+// import MCQ from './pages/MCQ';
+// import Programming from './pages/Programming';
 import Home from './pages/home';
 import GameWrapper from './pages/game';
+// =======
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import Racing from './pages/Racing';
+import MCQ from './pages/MCQ';
+import Programming from './pages/Programming';
+import StartScreen from './pages/StartScreen';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
 
@@ -19,8 +26,9 @@ function App() {
       </nav> */}
 
       <Routes>
-        <Route path="/racing" element={<RacingGame />} />
-        {/* <Route path="/mcq" element={<MCQ />} /> */}
+        <Route path="/" element={<StartScreen />} />
+        <Route path="/racing" element={<Racing numCheckpoints={5} topicId='' />} />
+        <Route path="/mcq" element={<MCQ />} />
         <Route path="/programming" element={<Programming />} />
         <Route path="/home" element={<Home />} />
         <Route path="/game" element={<GameWrapper />} />

@@ -4,32 +4,62 @@ interface GameState {
   velocity: number;
   isAccelerating: boolean;
   isGameComplete: boolean;
+  currCheckpoint: number;
+}
+
+interface RacingGameProps {
+  numCheckpoints: number;
+  topicId: string;
 }
 
 // Define our physics constants
 const GAME_CONSTANTS = {
   // Increased acceleration for more exciting gameplay
-  ACCELERATION: 200, // Increased from 20 to 200 pixels/second²
-  DECELERATION: -100, // Increased from -10 to -100 pixels/second²
-  FINISH_LINE: 1000,
-  MAX_VELOCITY: 800, // Added maximum velocity cap
+  ACCELERATION: 600, // Increased from 20 to 200 pixels/second²
+  DECELERATION: -25, // Increased from -10 to -100 pixels/second²
+  FINISH_LINE: 10000,
+  MAX_VELOCITY: 1200, // Added maximum velocity cap
   FPS: 60
 } as const;
 
+// Define our initial state as a constant to ensure consistent reset
+const INITIAL_STATE: GameState = {
+  distance: 0,
+  velocity: 0,
+  isAccelerating: false,
+  isGameComplete: false,
+  currCheckpoint: 1,
+};
+
 import { useState, useEffect, useRef } from 'react';
 
-const RacingGame: React.FC = () => {
+export default function RacingGame(props: RacingGameProps) {
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
     velocity: 0,
     isAccelerating: false,
-    isGameComplete: false
+    isGameComplete: false,
+    currCheckpoint: 1,
   });
 
   // Use refs for animation frame handling
   const animationFrameRef = useRef<number>();
   const lastUpdateTimeRef = useRef<number>(Date.now());
+
+  // Add a reset function to handle game restart
+  const handleReset = (): void => {
+    // Cancel any ongoing animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    // Reset the last update time
+    lastUpdateTimeRef.current = Date.now();
+    // Reset the game state to initial values
+    setGameState(INITIAL_STATE);
+    // Start a new animation frame
+    animationFrameRef.current = requestAnimationFrame(updatePhysics);
+  };
 
   // Physics update function using SUVAT equations
   const updatePhysics = (): void => {
@@ -41,10 +71,10 @@ const RacingGame: React.FC = () => {
       if (prevState.isGameComplete) return prevState;
 
       // Calculate new velocity with acceleration
-      const acceleration = prevState.isAccelerating 
-        ? GAME_CONSTANTS.ACCELERATION 
+      const acceleration = prevState.isAccelerating
+        ? GAME_CONSTANTS.ACCELERATION
         : GAME_CONSTANTS.DECELERATION;
-      
+
       // Calculate new velocity with a maximum speed cap
       const newVelocity = Math.min(
         Math.max(0, prevState.velocity + acceleration * deltaTime),
@@ -52,7 +82,7 @@ const RacingGame: React.FC = () => {
       );
 
       // Calculate displacement using SUVAT equation: s = ut + (1/2)at²
-      const displacement = prevState.velocity * deltaTime + 
+      const displacement = prevState.velocity * deltaTime +
         0.5 * acceleration * deltaTime * deltaTime;
 
       // Calculate new distance
@@ -64,6 +94,18 @@ const RacingGame: React.FC = () => {
           ...prevState,
           distance: GAME_CONSTANTS.FINISH_LINE,
           isGameComplete: true,
+          velocity: 0
+        };
+      }
+
+      var currCheckpointDist = GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * prevState.currCheckpoint;
+      const CKPT_DIST_PADDING = 100;
+      if (newDistance >= currCheckpointDist - CKPT_DIST_PADDING && (prevState.currCheckpoint - 1) < props.numCheckpoints) {
+        var nextCheckpoint = prevState.currCheckpoint + 1;
+        return {
+          ...prevState,
+          currCheckpoint: nextCheckpoint,
+          distance: currCheckpointDist - CKPT_DIST_PADDING + 1,
           velocity: 0
         };
       }
@@ -91,7 +133,7 @@ const RacingGame: React.FC = () => {
   // Event handlers with proper typing
   const handleAccelerateStart = (): void => {
     if (!gameState.isGameComplete) {
-      setGameState(prev => ({ ...prev, isAccelerating: true }));
+      setGameState(prev => ({ ...prev, velocity: 500 }));
     }
   };
 
@@ -100,72 +142,67 @@ const RacingGame: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center p-4">
+    <div className="w-screen h-screen flex flex-col items-center justify-center">
       {/* Racing Scene - Added relative positioning and z-index management */}
       <div className="w-full h-1/2 bg-gray-800 relative overflow-hidden">
         {/* Track - Lowered z-index */}
-        <div 
+        <div
           className="absolute inset-0 z-0"
           style={{
-            background: `repeating-linear-gradient(
-              90deg,
-              #4b5563 0px,
-              #4b5563 100px,
-              #374151 100px,
-              #374151 200px
-            )`,
-            backgroundSize: '200px 100%',
+            // Replace the gradient with your image URL
+            backgroundImage: `url('src/assets/track.png')`,
+            backgroundRepeat: 'repeat-x',
+            backgroundSize: "contain",
             transform: `translateX(-${gameState.distance}px)`,
-            width: '200%',
-            height: '100%',
+            width: '800%', // Make sure we have enough room for the repeating background
+            height: "100%",
             transition: 'transform 16ms linear'
           }}
         />
-        
-        {/* Finish line - Middle z-index */}
-        <div 
-          className="absolute top-0 h-full w-8 bg-red-600 z-10"
+
+        <div
+          className="absolute top-0 h-full z-10"
           style={{
+            backgroundImage: `url('src/assets/finish_line.png')`,
+            width: "60px",
+            height: "600px",
             left: `calc(50% + ${GAME_CONSTANTS.FINISH_LINE - gameState.distance}px)`
           }}
         />
-        
-        {/* Car - Highest z-index and improved visibility */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="relative w-[200px] h-[100px]">
-            {/* Main body with shadow for depth */}
-            <div className="absolute bottom-0 w-full h-[60px] bg-red-500 rounded-lg shadow-xl" />
-            
-            {/* Hood with gradient for better visibility */}
-            <div className="absolute bottom-[40px] left-[40px] w-[120px] h-[40px] bg-gradient-to-r from-red-600 to-red-500 rounded-t-lg" />
-            
-            {/* Windows with glare effect */}
-            <div className="absolute bottom-[45px] left-[60px] w-[80px] h-[30px] bg-blue-400 rounded-sm 
-                          before:content-[''] before:absolute before:inset-0 before:bg-white before:opacity-20" />
-            
-            {/* Wheels with rotation animation */}
-            <div className="absolute bottom-[-10px] left-[30px] w-[40px] h-[40px] bg-gray-800 rounded-full 
-                          border-4 border-gray-700" />
-            <div className="absolute bottom-[-10px] right-[30px] w-[40px] h-[40px] bg-gray-800 rounded-full 
-                          border-4 border-gray-700" />
-          </div>
-        </div>
 
-        {/* Speed indicator */}
-        <div className="absolute top-4 left-4 text-white text-lg font-bold z-30">
-          Speed: {Math.round(gameState.velocity)} px/s
+        {
+          Array.from({ length: props.numCheckpoints }).map((_, index) =>
+            <div
+              className="absolute top-0 h-full w-8 bg-red-600 z-10" key={index}
+              style={{
+                left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * (index + 1)) - gameState.distance}px)`
+              }}
+            ></div>
+          )}
+
+        {/* Car - Highest z-index and improved visibility */}
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20' style={{
+          backgroundImage: `url('src/assets/car.png')`,
+          width: "200px",
+          height: "100px",
+        }} />
+
+        {/* Question number indicator */}
+        {!gameState.isGameComplete && <div className="absolute bottom-4 right-4 text-white text-lg font-bold z-30">
+          Round: {gameState.currCheckpoint - 1}/{props.numCheckpoints}
         </div>
-        
+        }
+
         {/* Game complete overlay */}
         {gameState.isGameComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40">
             <div className="text-white text-4xl font-bold">
               Finish!
             </div>
           </div>
         )}
       </div>
-      
+
       {/* Controls Container */}
       <div className="w-full h-1/2 bg-white p-4">
         <button
@@ -180,10 +217,20 @@ const RacingGame: React.FC = () => {
         >
           Hold to Accelerate
         </button>
-        
+
+        {gameState.isGameComplete && (
+          <button
+            onClick={handleReset}
+            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
+                       transition-all duration-300 ease-in-out"
+          >
+            Play Again
+          </button>
+        )}
+
         {/* Progress bar */}
         <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
-          <div 
+          <div
             className="bg-blue-600 h-2.5 rounded-full transition-all duration-100"
             style={{ width: `${(gameState.distance / GAME_CONSTANTS.FINISH_LINE) * 100}%` }}
           />
@@ -192,5 +239,3 @@ const RacingGame: React.FC = () => {
     </div>
   );
 };
-
-export default RacingGame;
