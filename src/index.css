@@ -71,6 +71,22 @@ button:focus-visible {
   outline: 4px solid #ffcc00;
 }
 
+@keyframes fadeInAnimation {
+  0% {
+      opacity: 0;
+  }
+
+  100% {
+      opacity: 1;
+  }
+}
+
+@keyframes countdown {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.5); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+/* 
 @media (prefers-color-scheme: light) {
   :root {
     color: #222;
@@ -88,4 +104,4 @@ button:focus-visible {
     background-color: #ff6600;
     box-shadow: 4px 4px 0px #222;
   }
-}
+} */

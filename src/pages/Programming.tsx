@@ -1,189 +1,117 @@
-import { DragEvent, useCallback, useEffect, useState } from 'react'
-import "../App.css"
+import React, { useState } from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
-// const API_KEY = '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'
-const API_KEY = import.meta.env.OPENAI_API_KEY
+const initialSentence = [
+  { id: '1', type: 'text', content: 'The' },
+  { id: '2', type: 'blank', content: '' },
+  { id: '3', type: 'text', content: 'jumps over the' },
+  { id: '4', type: 'blank', content: '' },
+  { id: '5', type: 'text', content: '.' }
+];
 
-// Function to randomly generate a multiple-choice question
-function Programming() {
+const initialWords = [
+  { id: 'word-1', content: 'quick' },
+  { id: 'word-2', content: 'lazy' },
+  { id: 'word-3', content: 'fox' },
+  { id: 'word-4', content: 'dog' }
+];
 
-  const [blanks, setBlanks] = useState({
-    blank1: '',
-    blank2: '',
-  })
-
-  const components = ['5', 'i', 'int'];
-
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, value: string) => {
-    e.dataTransfer.setData('text/plain', value);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLSpanElement>, blankKey: string) => {
-    const value = e.dataTransfer.getData('text/plain');
-    setBlanks((prev) => ({ ...prev, [blankKey]: value }));
-    e.preventDefault();
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLSpanElement>) => {
-    e.preventDefault();
-  };
-
-  const checkAnswer = () => {
-    if (blanks.blank1 === 'int' && blanks.blank2 === 'i') {
-      alert('✅ Correct!');
-    } else {
-      alert('❌ Incorrect! Try again.');
-    }
-  };
-
-  const [question, setQuestion] = useState<string>('');
-  const [options, setOptions] = useState<string[]>([]);
-  const correctAnswerIdx = 2; // I don't need this
-
-  const [selectedOption, setSelectedOption] = useState<number|null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean|null>(null);
-
-  const handleOptionClick = (optionIdx: number) => {
-    setSelectedOption(optionIdx);
-    setIsCorrect(optionIdx === correctAnswerIdx);
-  };
-
-  const fetchQuestion = useCallback(async () => {
-    const prompt = `
-    Generate a random fill-in-the-blankd question on beginner level.
-    Give questions that are useful for learning computer science.
-    Respond strictly in this JSON format:
-    {
-      "question": "Your question here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "answer": Index 0-3 for the correct answer
-    }
-    Ensure options are distinct and only one correct answer is provided.
-    
-    Here is a sample response:
-    {
-      "question": "What is the faster programming language?",
-      "options": ["Perl", "Python", "Swift", "C"],
-      "answer": 3
-    
-    }`;
-    try {
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-latest',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-          }),
-        });
-
-        const data = await response.json();
-        const jsonResponse = JSON.parse(data.choices[0].message.content);
-
-        setQuestion(jsonResponse.question)
-        setOptions(jsonResponse.options)
-        console.log(jsonResponse);
-
-    } catch (error) {
-        console.error('Error:', error);
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchQuestion();
-  }, [fetchQuestion])
-
+const DraggableWord = ({ word }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'WORD',
+    item: { id: word.id, content: word.content },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }));
 
 
   return (
-    <div style={{ padding: 20, fontFamily: 'Arial' }}>
-      <h1>🧩 Fill-in-the-Blank (Drag & Drop)</h1>
-      <p>Drag the correct components into the blanks to complete the code:</p>
-
-      <pre
-        style={{
-          background: '#f4f4f4',
-          padding: '10px',
-          borderRadius: '5px',
-          fontSize: '16px',
-        }}
-      >
-        {'int i = 0;\nwhile ('}
-        <span
-          onDrop={(e) => handleDrop(e, 'blank1')}
-          onDragOver={handleDragOver}
-          style={{
-            display: 'inline-block',
-            minWidth: '40px',
-            padding: '5px',
-            backgroundColor: '#ddd',
-            border: '1px dashed #999',
-            textAlign: 'center',
-          }}
-        >
-          {blanks.blank1 || '____'}
-        </span>
-        {' < '}
-        <span
-          onDrop={(e) => handleDrop(e, 'blank2')}
-          onDragOver={handleDragOver}
-          style={{
-            display: 'inline-block',
-            minWidth: '40px',
-            padding: '5px',
-            backgroundColor: '#ddd',
-            border: '1px dashed #999',
-            textAlign: 'center',
-          }}
-        >
-          {blanks.blank2 || '____'}
-        </span>
-        {') {\n  i++;\n}'}
-      </pre>
-
-      <h3>🧱 Components:</h3>
-      <div style={{ display: 'flex', gap: '10px' }}>
-        {components.map((comp, index) => (
-          <div
-            key={index}
-            draggable
-            onDragStart={(e) => handleDragStart(e, comp)}
-            style={{
-              padding: '10px 15px',
-              backgroundColor: '#90caf9',
-              borderRadius: '5px',
-              cursor: 'grab',
-              userSelect: 'none',
-              border: '1px solid #1976d2',
-            }}
-          >
-            {comp}
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={checkAnswer}
-        style={{
-          marginTop: '20px',
-          padding: '10px 20px',
-          backgroundColor: '#4caf50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-          cursor: 'pointer',
-        }}
-      >
-        Submit Answer
-      </button>
+    <div
+      ref={drag}
+      className="bg-blue-200 p-2 rounded shadow cursor-move"
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
+      {word.content}
     </div>
   );
-}
+};
 
-export default Programming
+const BlankSpace = ({ part, onDrop }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'WORD',
+    drop: (item) => onDrop(part.id, item),
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drop}
+      className={`border-dashed border-2 border-gray-400 min-w-[60px] min-h-[40px] p-2 text-center bg-gray-100 rounded flex items-center justify-center ${isOver ? 'bg-green-100' : ''}`}
+    >
+      {part.content || '____'}
+    </div>
+  );
+};
+
+export default function DragDropSentenceGame() {
+  const [sentence, setSentence] = useState(initialSentence);
+  const [words, setWords] = useState(initialWords);
+
+  const handleDrop = (blankId, item) => {
+    setSentence((prev) =>
+      prev.map((part) => (part.id === blankId ? { ...part, content: item.content } : part))
+    );
+    setWords((prev) => prev.filter((word) => word.id !== item.id));
+  };
+
+  const returnToPool = (word) => {
+    setWords((prev) => [...prev, word]);
+    setSentence((prev) =>
+      prev.map((part) => (part.content === word.content ? { ...part, content: '' } : part))
+    );
+  };
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="p-4">
+        <h1 className="text-xl font-bold mb-4">Finish the Sentence</h1>
+        <div className="flex gap-2">
+          {sentence.map((part) =>
+            part.type === 'text' ? (
+              <span key={part.id}>{part.content}</span>
+            ) : (
+              <BlankSpace key={part.id} part={part} onDrop={handleDrop} />
+            )
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-4 border-t pt-2">
+          {words.map((word) => (
+            <DraggableWord key={word.id} word={word} />
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">Return Words to Pool</h2>
+          <div className="flex gap-2">
+            {sentence
+              .filter((part) => part.type === 'blank' && part.content)
+              .map((part) => (
+                <button
+                  key={part.id}
+                  onClick={() => returnToPool({ id: `word-${part.content}`, content: part.content })}
+                  className="bg-red-200 p-2 rounded shadow cursor-pointer"
+                >
+                  {part.content}
+                </button>
+              ))}
+          </div>
+        </div>
+      </div>
+    </DndProvider>
+  );
+}

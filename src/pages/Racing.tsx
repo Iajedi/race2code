@@ -5,6 +5,9 @@ interface GameState {
   isAccelerating: boolean;
   isGameComplete: boolean;
   currCheckpoint: number;
+  isDoorClosed: boolean;
+  isCountingDown: boolean;
+  countdownValue: number | 'GO!' | null;
 }
 
 interface RacingGameProps {
@@ -19,7 +22,8 @@ const GAME_CONSTANTS = {
   DECELERATION: -25, // Increased from -10 to -100 pixels/second²
   FINISH_LINE: 10000,
   MAX_VELOCITY: 1200, // Added maximum velocity cap
-  FPS: 60
+  FPS: 60,
+  COUNTDOWN_DURATION: 1000 // MS
 } as const;
 
 // Define our initial state as a constant to ensure consistent reset
@@ -29,6 +33,9 @@ const INITIAL_STATE: GameState = {
   isAccelerating: false,
   isGameComplete: false,
   currCheckpoint: 1,
+  isDoorClosed: true,
+  isCountingDown: true, // Start with countdown active
+  countdownValue: 3    // Start from 3
 };
 
 import { useState, useEffect, useRef } from 'react';
@@ -65,11 +72,48 @@ export default function RacingGame(props: RacingGameProps) {
     isAccelerating: false,
     isGameComplete: false,
     currCheckpoint: 1,
+    isDoorClosed: true,
+    isCountingDown: true, // Start with countdown active
+    countdownValue: 3    // Start from 3
   });
 
   // Use refs for animation frame handling
   const animationFrameRef = useRef<number>();
   const lastUpdateTimeRef = useRef<number>(Date.now());
+
+  // Handle the countdown sequence
+  useEffect(() => {
+    // Only proceed if we're in countdown mode
+    if (gameState.isCountingDown && gameState.countdownValue !== null) {
+      const timer = setTimeout(() => {
+        setGameState(prev => {
+          // If current value is 1, show 'GO!' next
+          if (prev.countdownValue === 1) {
+            return {
+              ...prev,
+              countdownValue: 'GO!',
+              velocity: 600 // Set initial velocity on GO!
+            };
+          }
+          // If current value is 'GO!', end countdown
+          if (prev.countdownValue === 'GO!') {
+            return {
+              ...prev,
+              isCountingDown: false,
+              countdownValue: null
+            };
+          }
+          // Otherwise, decrease the counter by 1
+          return {
+            ...prev,
+            countdownValue: typeof prev.countdownValue === 'number' ? prev.countdownValue - 1 : null
+          };
+        });
+      }, GAME_CONSTANTS.COUNTDOWN_DURATION);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.countdownValue, gameState.isCountingDown]);
 
   // Add a reset function to handle game restart
   const handleReset = (): void => {
@@ -84,6 +128,24 @@ export default function RacingGame(props: RacingGameProps) {
     // Start a new animation frame
     animationFrameRef.current = requestAnimationFrame(updatePhysics);
   };
+
+  // Start physics loop when component mounts or resets
+  useEffect(() => {
+    // Clear any existing animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    // Reset the last update time
+    lastUpdateTimeRef.current = Date.now();
+    // Start the physics loop
+    animationFrameRef.current = requestAnimationFrame(updatePhysics);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [gameState.isCountingDown]); // Re-run when countdown state changes
 
   // Physics update function using SUVAT equations
   const updatePhysics = (): void => {
@@ -130,6 +192,7 @@ export default function RacingGame(props: RacingGameProps) {
           ...prevState,
           currCheckpoint: nextCheckpoint,
           distance: currCheckpointDist - CKPT_DIST_PADDING + 1,
+          isDoorClosed: false,
           velocity: 0
         };
       }
@@ -145,19 +208,11 @@ export default function RacingGame(props: RacingGameProps) {
   };
 
   // Effect for handling the game loop
-  useEffect(() => {
-    animationFrameRef.current = requestAnimationFrame(updatePhysics);
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [gameState.isAccelerating]);
 
   // Event handlers with proper typing
   const handleAccelerateStart = (): void => {
     if (!gameState.isGameComplete) {
-      setGameState(prev => ({ ...prev, velocity: 500 }));
+      setGameState(prev => ({ ...prev, velocity: 500, isDoorClosed: true }));
     }
   };
 
@@ -197,7 +252,7 @@ export default function RacingGame(props: RacingGameProps) {
         {
           Array.from({ length: props.numCheckpoints }).map((_, index) =>
             <div
-              className="absolute top-0 h-full w-8 bg-red-600 z-10" key={index}
+              className="absolute top-0 h-full w-8 bg-red-800 z-10" key={index}
               style={{
                 left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1) * (index + 1)) - gameState.distance}px)`
               }}
@@ -217,11 +272,17 @@ export default function RacingGame(props: RacingGameProps) {
         </div>
         }
 
-        {/* Game complete overlay */}
-        {gameState.isGameComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 z-40">
-            <div className="text-white text-4xl font-bold">
-              Finish!
+        {gameState.countdownValue !== null && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div
+              className="text-8xl font-bold text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] transform scale-150 transition-all duration-300"
+              style={{
+                animation: 'countdown 1s ease',
+                animationIterationCount: "infinite",
+                animationDuration: "1s",
+              }}
+            >
+              {gameState.countdownValue}
             </div>
           </div>
         )}
@@ -240,8 +301,6 @@ export default function RacingGame(props: RacingGameProps) {
         </div>
       </div>
 
-      {/* Controls Container */}
-      <div className="w-full h-1/2 bg-white p-4">
         <button
           onMouseDown={handleAccelerateStart}
           onMouseUp={handleAccelerateEnd}
@@ -249,21 +308,54 @@ export default function RacingGame(props: RacingGameProps) {
           onTouchStart={handleAccelerateStart}
           onTouchEnd={handleAccelerateEnd}
           disabled={gameState.isGameComplete}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
-                     disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="absolute bottom-4 left-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+                     disabled:bg-gray-400 disabled:cursor-not-allowed z-30"
         >
           Hold to Accelerate
         </button>
 
+        {/* Game complete overlay */}
         {gameState.isGameComplete && (
-          <button
-            onClick={handleReset}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-40" style={{
+            animation: "fadeInAnimation ease 1s",
+            animationIterationCount: "1",
+            animationFillMode: "forwards",
+          }}>
+            <div className="text-white text-4xl font-bold">
+              Finish!
+            </div>
+            <button
+              onClick={handleReset}
+              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
                        transition-all duration-300 ease-in-out"
-          >
-            Play Again
-          </button>
+            >
+              Play Again
+            </button>
+          </div>
         )}
+      </div>
+
+      {/* Controls Container */}
+      <div className="w-full h-1/2 bg-white p-4 relative overflow-hidden">
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0' style={{
+          backgroundImage: `url('src/assets/door_left.png')`,
+          backgroundSize: "100% 100%",
+          width: "100%",
+          height: "100%",
+          transform: `translateX(${gameState.isDoorClosed ? 0 : -50}%)`,
+          imageRendering: "pixelated",
+          transition: 'transform 250ms ease-in-out'
+        }} />
+
+        <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0' style={{
+          backgroundImage: `url('src/assets/door_right.png')`,
+          backgroundSize: "100% 100%",
+          width: "100%",
+          height: "100%",
+          transform: `translateX(${gameState.isDoorClosed ? 0 : 50}%)`,
+          imageRendering: "pixelated",
+          transition: 'transform 250ms ease-in-out'
+        }} />
       </div>
     </div>
   );
