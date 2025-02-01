@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const initialSentence = [
   { id: '1', type: 'text', content: 'The' },
@@ -16,114 +17,100 @@ const initialWords = [
   { id: 'word-4', content: 'dog' }
 ];
 
+const DraggableWord = ({ word }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'WORD',
+    item: { id: word.id, content: word.content },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drag}
+      className="bg-blue-200 p-2 rounded shadow cursor-move"
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
+      {word.content}
+    </div>
+  );
+};
+
+const BlankSpace = ({ part, onDrop }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'WORD',
+    drop: (item) => onDrop(part.id, item),
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drop}
+      className={`border-dashed border-2 border-gray-400 min-w-[60px] min-h-[40px] p-2 text-center bg-gray-100 rounded flex items-center justify-center ${isOver ? 'bg-green-100' : ''}`}
+    >
+      {part.content || '____'}
+    </div>
+  );
+};
+
 export default function DragDropSentenceGame() {
   const [sentence, setSentence] = useState(initialSentence);
   const [words, setWords] = useState(initialWords);
 
-  const onDragEnd = (result) => {
-    const { source, destination, draggableId } = result;
+  const handleDrop = (blankId, item) => {
+    setSentence((prev) =>
+      prev.map((part) => (part.id === blankId ? { ...part, content: item.content } : part))
+    );
+    setWords((prev) => prev.filter((word) => word.id !== item.id));
+  };
 
-    if (!destination) return;
-
-    // Dragging from the word pool to a blank
-    if (destination.droppableId.startsWith('blank-') && source.droppableId === 'words-pool') {
-      const targetBlankId = destination.droppableId.split('-')[1];
-
-      setSentence((prev) =>
-        prev.map((part) => {
-          if (part.id === targetBlankId && part.content === '') {
-            return { ...part, content: words.find((w) => w.id === draggableId).content };
-          }
-          return part;
-        })
-      );
-
-      setWords((prev) => prev.filter((word) => word.id !== draggableId));
-    }
-
-    // Dragging from a blank back to the word pool
-    if (destination.droppableId === 'words-pool' && source.droppableId.startsWith('blank-')) {
-      const sourceBlankId = source.droppableId.split('-')[1];
-      const wordContent = sentence.find((part) => part.id === sourceBlankId).content;
-
-      if (wordContent) {
-        setWords((prev) => [...prev, { id: draggableId, content: wordContent }]);
-
-        setSentence((prev) =>
-          prev.map((part) =>
-            part.id === sourceBlankId ? { ...part, content: '' } : part
-          )
-        );
-      }
-    }
+  const returnToPool = (word) => {
+    setWords((prev) => [...prev, word]);
+    setSentence((prev) =>
+      prev.map((part) => (part.content === word.content ? { ...part, content: '' } : part))
+    );
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Finish the Sentence</h1>
-      <DragDropContext onDragEnd={onDragEnd}>
+    <DndProvider backend={HTML5Backend}>
+      <div className="p-4">
+        <h1 className="text-xl font-bold mb-4">Finish the Sentence</h1>
         <div className="flex gap-2">
           {sentence.map((part) =>
             part.type === 'text' ? (
               <span key={part.id}>{part.content}</span>
             ) : (
-              <Droppable droppableId={`blank-${part.id}`} key={part.id}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="border-dashed border-2 border-gray-400 min-w-[60px] min-h-[40px] p-2 text-center bg-gray-100 rounded flex items-center justify-center"
-                  >
-                    {part.content ? (
-                      <Draggable draggableId={`blank-${part.id}`} index={0} key={part.id}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="bg-green-200 p-2 rounded shadow cursor-move"
-                          >
-                            {part.content}
-                          </div>
-                        )}
-                      </Draggable>
-                    ) : (
-                      '____'
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+              <BlankSpace key={part.id} part={part} onDrop={handleDrop} />
             )
           )}
         </div>
 
-        <Droppable droppableId="words-pool" direction="horizontal">
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="flex gap-2 mt-4 border-t pt-2"
-            >
-              {words.map((word, index) => (
-                <Draggable draggableId={word.id} index={index} key={word.id}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className="bg-blue-200 p-2 rounded shadow cursor-move"
-                    >
-                      {word.content}
-                    </div>
-                  )}
-                </Draggable>
+        <div className="flex gap-2 mt-4 border-t pt-2">
+          {words.map((word) => (
+            <DraggableWord key={word.id} word={word} />
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">Return Words to Pool</h2>
+          <div className="flex gap-2">
+            {sentence
+              .filter((part) => part.type === 'blank' && part.content)
+              .map((part) => (
+                <button
+                  key={part.id}
+                  onClick={() => returnToPool({ id: `word-${part.content}`, content: part.content })}
+                  className="bg-red-200 p-2 rounded shadow cursor-pointer"
+                >
+                  {part.content}
+                </button>
               ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-    </div>
+          </div>
+        </div>
+      </div>
+    </DndProvider>
   );
 }
