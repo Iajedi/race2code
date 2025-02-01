@@ -54,14 +54,21 @@ const BlankSpace = ({ part, onDrop }) => {
   }));
 
   return (
-    <div
+    <span
       ref={drop}
-      className={`border-dashed border-2 border-gray-400 min-w-[80px] min-h-[30px] p-1 text-center bg-gray-600 rounded flex items-center justify-center font-mono ${isOver ? 'bg-green-100' : ''}`}
+      className={`border-b-2 border-dashed border-gray-400 px-1 mx-1 text-center bg-gray-600 rounded-sm font-mono 
+        ${isOver ? 'bg-green-100' : ''}`}
+      style={{
+        display: 'inline-flex',           // Align inline with text
+        minWidth: part.content ? 'auto' : '40px', // Adjust width based on content
+        padding: '2px 4px',               // Compact padding
+      }}
     >
       {part.content || '____'}
-    </div>
+    </span>
   );
 };
+
 
 export default function Programming() {
   const [code, setCode] = useState([]);
