@@ -68,13 +68,12 @@ export default function Programming() {
   const [words, setWords] = useState([]);
 
   const fetchCodeData = useCallback(async () => {
-    const prompt = `Generate a simple Python code snippet on a beginner level. 
+    const prompt = `Generate a simple Python code snippet on a beginner level, maximum 5 lines. 
     Give your response in a string.
     Here is a sample response:
     
     def greet(name):
     print(f"Hello, {name}!")
-
     greet("Alice")`;
 
     try {
@@ -94,28 +93,41 @@ export default function Programming() {
       const data = await response.json();
       const codeSnippet = data.choices[0].message.content.split('\n');
 
+      console.log('Code snippet:', codeSnippet);
+
       const generatedCode = [];
       const generatedWords = [];
       let idCounter = 1;
 
+      const MAX_BLANKS = 3;  // Maximum number of blanks
+      let blankCounter = 0;  // Counter to track blanks created
+      
       codeSnippet.forEach((line) => {
         if (line.trim() === '') {
           generatedCode.push({ id: `${idCounter++}`, type: 'newline', content: '\n' });
         } else {
-          const wordsInLine = line.split(' ');
-  
+          const wordsInLine = line.split(/(\s+)/); // Split by spaces while keeping them
+      
           wordsInLine.forEach((word) => {
-            if (Math.random() < 0.3) { // Randomly blank out some words
+            if (/\s+/.test(word)) {
+              // If the word is whitespace, add it as text without blanking
+              generatedCode.push({ id: `${idCounter++}`, type: 'text', content: word });
+            } else if (blankCounter < MAX_BLANKS && Math.random() < 0.3) {
+              // Blank out non-whitespace words if limit isn't reached
               generatedCode.push({ id: `${idCounter++}`, type: 'blank', content: '' });
               generatedWords.push({ id: `word-${idCounter}`, content: word });
+              blankCounter++;
             } else {
+              // Add normal text if not blanked
               generatedCode.push({ id: `${idCounter++}`, type: 'text', content: word });
             }
           });
-  
+      
           generatedCode.push({ id: `${idCounter++}`, type: 'newline', content: '\n' });
         }
       });
+      
+      
       
       setCode(generatedCode);
       setWords(generatedWords);
