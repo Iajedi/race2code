@@ -1,18 +1,13 @@
 import './App.css'
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import { useEffect } from 'react';
-import RacingGame from './pages/Racing';
+import { Routes, Route, Link } from "react-router-dom";
+import Racing from './pages/Racing';
 import MCQ from './pages/MCQ';
 import Programming from './pages/Programming';
+import StartScreen from './pages/StartScreen';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
 
 function App() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    navigate("/racing"); // Auto-redirect to /mcq on load
-  }, [navigate]);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <nav className="mb-4">
@@ -21,7 +16,8 @@ function App() {
       </nav>
 
       <Routes>
-        <Route path="/racing" element={<RacingGame />} />
+        <Route path="/" element={<StartScreen />} />
+        <Route path="/racing" element={<Racing />} />
         <Route path="/mcq" element={<MCQ />} />
         <Route path="/programming" element={<Programming />} />
         <Route path="*" element={<NotFound />} />
