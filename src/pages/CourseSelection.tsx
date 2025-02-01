@@ -1,12 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import Button from '../components/button';
+import NavButton from '../components/NavButton';
 
 const CourseSelection: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleTopicSelection = (topic: string) => {
-    navigate('/racing?topic=' + topic);
-  };
 
   // const topics: { [key: string]: string } = {
   //   "programmingBasics":"Programming Basics",
@@ -21,7 +15,7 @@ const CourseSelection: React.FC = () => {
 
   const topicButtons = []
   for (let key in topics) {
-    topicButtons.push(<Button onClick={() => handleTopicSelection(topics[key])} className='mx-3'> {topics[key]} </Button>)
+    topicButtons.push(<NavButton destination={`/racing?topic=${topics[key]}`} className='mx-3'> {topics[key]} </NavButton>)
     
   }
 

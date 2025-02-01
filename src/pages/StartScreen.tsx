@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import Button from '../components/button';
+import NavButton from '../components/NavButton';
 
 const StartScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -18,11 +18,11 @@ const StartScreen: React.FC = () => {
         <p className="text-xl text-gray-300 mb-8">
           Are you ready to hit the track?
         </p>
-        <Button 
-          onClick={handleStartGame}
+        <NavButton 
+          destination='/courses'
         >
           Start Racing
-        </Button>
+        </NavButton>
       </div>
     </div>
   );
