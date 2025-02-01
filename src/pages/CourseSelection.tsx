@@ -15,7 +15,7 @@ const CourseSelection: React.FC = () => {
 
   const topicButtons = []
   for (let key in topics) {
-    topicButtons.push(<NavButton destination={`/racing?topic=${topics[key]}`} className='mx-3'> {topics[key]} </NavButton>)
+    topicButtons.push(<NavButton destination={`/game?topic=${topics[key]}`} className='mx-3'> {topics[key]} </NavButton>)
     
   }
 

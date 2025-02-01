@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
+import { useSearchParams } from 'react-router-dom';
 
 // Create the context
 const GameContext = createContext<any>(null);
@@ -21,7 +22,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   // Parameters:
   // - an array of questions
 
-  const topic = 'Basic Programming Concepts';
+  // const topic = 'Basic Programming Concepts';
+  const [searchParams] = useSearchParams();
+  const topic = searchParams.get('topic');
   const [isQuestionsGenerated, setIsQuestionsGenerated] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -40,6 +43,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode}) => {
   }, [score])
 
   const fetchQuestions = useCallback(async () => {
+    console.log(`The topic is ${topic}`)
     const prompt = `
     Generate five random multiple-choice questions on ${topic}.
     Give questions that are useful for learning computer science. 
