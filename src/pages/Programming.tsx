@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
-const API_KEY = import.meta.env.OPENAI_API_KEY
+const API_KEY = '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';
 
 const initialCode = [
   { id: '1', type: 'text', content: 'function' },
@@ -64,11 +64,18 @@ const BlankSpace = ({ part, onDrop }) => {
 };
 
 export default function Programming() {
-  const [code, setCode] = useState(initialCode);
-  const [words, setWords] = useState(initialWords);
+  const [code, setCode] = useState([]);
+  const [words, setWords] = useState([]);
 
   const fetchCodeData = useCallback(async () => {
-    const prompt = 'Generate a simple Python code snippet on a beginner level. Give your response in a string.';
+    const prompt = `Generate a simple Python code snippet on a beginner level. 
+    Give your response in a string.
+    Here is a sample response:
+    
+    def greet(name):
+    print(f"Hello, {name}!")
+
+    greet("Alice")`;
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -78,18 +85,14 @@ export default function Programming() {
           Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-latest',
+          model: 'gpt-4o',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
-
       const data = await response.json();
-      const codeSnippet = JSON.parse(data.choices[0].message.content.trim().split('\n'));
+      const codeSnippet = data.choices[0].message.content.split('\n');
 
       const generatedCode = [];
       const generatedWords = [];
