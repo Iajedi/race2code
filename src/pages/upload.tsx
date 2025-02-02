@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NavButton from '../components/NavButton';
 
 const Upload: React.FC = () => {
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -41,6 +42,10 @@ const Upload: React.FC = () => {
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-black">
+      <NavButton destination='/' className='absolute top-4 left-4 z-30'>
+        Back
+      </NavButton>
+
       <h2 className="text-2xl font-bold text-white mb-4">Upload Python File</h2>
       <div className="flex flex-col items-center justify-center gap-2">
         {/* Hidden file input */}

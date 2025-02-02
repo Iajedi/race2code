@@ -146,8 +146,6 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     }
   };
 
-  console.log(OPENAI_API_KEY);
-
   // Send audio to OpenAI's Whisper API
   const sendToWhisperAPI = async (audioBlob: Blob) => {
     const formData = new FormData();

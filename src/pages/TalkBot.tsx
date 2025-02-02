@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
 import { AudioVisualizer } from '../components/AudioVisualizer';
+import NavButton from '../components/NavButton';
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 interface Explanation {
   blockCode: string;
@@ -28,8 +29,6 @@ function TalkBot() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  console.log(OPENAI_API_KEY)
 
   const generateSpeech = async (text: string) => {
     try {
@@ -253,6 +252,9 @@ function TalkBot() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <NavButton destination='/' className='absolute top-4 left-4 z-30'>
+        Back to Home
+      </NavButton>
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-center">Interactive Code Explanation</h1>
 

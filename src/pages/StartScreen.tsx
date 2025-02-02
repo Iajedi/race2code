@@ -32,6 +32,10 @@ const StartScreen: React.FC = () => {
           Get Pitstop Tyres (Help with code)
         </NavButton>
 
+        <div className='absolute bottom-4 right-4 text-white text-lg font-bold z-30'>
+          IC Hack 25 Category Winner
+        </div>
+
       </div>
     </div>
   );
