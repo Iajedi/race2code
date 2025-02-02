@@ -137,10 +137,8 @@ ${code}`,
                         {/* Display the code block */}
                         <CodeDisplay
                           code={block.blockCode}
-                          currentExplanation={block.explanation} // Ensure this is being passed and rendered in CodeDisplay
+                          // currentExplanation={block.explanation} // Ensure this is being passed and rendered in CodeDisplay
                         />
-                        {/* You can also directly display the explanation here for debugging */}
-                        <div className="text-gray-300 mt-2">{block.explanation}</div>
                       </div>
                     </div>
                   ))}

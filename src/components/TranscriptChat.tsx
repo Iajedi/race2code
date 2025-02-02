@@ -2,15 +2,15 @@ import React from 'react';
 
 interface TranscriptChatProps {
   explanations: Array<{
-    text: string;
-    lineNumbers: number[];
+    blockCode: string;
+    explanation: string;
   }>;
   currentStep: number;
 }
 
 export const TranscriptChat: React.FC<TranscriptChatProps> = ({ explanations, currentStep }) => {
   return (
-    <div className="space-y-4 h-[500px] overflow-y-auto">
+    <div className="transcript-chat space-y-4 h-[500px] overflow-y-auto">
       {explanations.slice(0, currentStep + 1).map((explanation, index) => (
         <div
           key={index}
@@ -24,7 +24,9 @@ export const TranscriptChat: React.FC<TranscriptChatProps> = ({ explanations, cu
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
               {index + 1}
             </div>
-            <p className="text-gray-200">{explanation.text}</p>
+            <div>
+              <p className="text-gray-200">{explanation.explanation}</p>
+            </div>
           </div>
         </div>
       ))}
