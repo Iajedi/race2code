@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
@@ -22,14 +22,16 @@ for (let i = 0; i < 5; i++) {
 console.log(result);`;
 
 function App() {
-  const loction = useLocation();
-  const uploadedCode = loction.state?.code;
+  const location = useLocation();
+  const uploadedCode = location.state?.code;
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(3000); // 3 seconds per step
   const [explanations, setExplanations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showAudioVisualizer, setShowAudioVisualizer] = useState(false); // State to toggle between AudioVisualizer and TranscriptChat
+  const [showAudioVisualizer, setShowAudioVisualizer] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const fetchExplanations = async (code: string) => {
     if (!code) return;
@@ -77,13 +79,10 @@ ${code}`,
       if (!response.ok) throw new Error('Failed to fetch explanations');
 
       const rawData = await response.json();
-
-      // Log the raw response to check for formatting issues
       console.log('Raw response data:', rawData);
 
-      // Attempt to clean and parse the explanation
       const explanationString = rawData.choices[0].message.content;
-      const sanitizedString = explanationString.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+      const sanitizedString = explanationString.replace(/[\x00-\x1F\x7F]/g, '');
       const responseData = JSON.parse(sanitizedString);
 
       setExplanations(responseData);
@@ -95,12 +94,10 @@ ${code}`,
     }
   };
 
-  // Fetch explanations when the component mounts
   useEffect(() => {
     fetchExplanations(uploadedCode);
   }, [uploadedCode]);
 
-  // Auto-play logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isPlaying && currentStep < explanations.length - 1) {
@@ -126,7 +123,28 @@ ${code}`,
     setCurrentStep(blockIndex);
   };
 
+  const handleVisualizerReady = useCallback(async (analyser: AnalyserNode) => {
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(audioStream);
+      
+      const audioContext = analyser.context;
+      const source = audioContext.createMediaStreamSource(audioStream);
+      source.connect(analyser);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      setIsRecording(false);
+    }
+  }, []);
+
   const handleToggleView = () => {
+    if (showAudioVisualizer && isRecording) {
+      // Clean up audio stream when switching away from visualizer
+      stream?.getTracks().forEach(track => track.stop());
+      setStream(null);
+      setIsRecording(false);
+    }
     setShowAudioVisualizer(!showAudioVisualizer);
   };
 
@@ -142,23 +160,20 @@ ${code}`,
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left side - Code Display */}
               <div className="bg-gray-800 rounded-lg p-6">
-                {/* Displaying the code blocks with numbered circles */}
                 <div>
                   {explanations.map((block, index) => (
                     <div
                       key={index}
-                      className="flex items-start space-x-4 p-4"
+                      className="flex items-start space-x-4 p-4 cursor-pointer transition-colors"
                       style={{ backgroundColor: currentStep === index ? '#2d3748' : 'transparent' }}
                       onClick={() => handleBlockSelect(index)}
                     >
                       <div className="w-6 h-6 rounded-full bg-blue-500 text-center text-white flex items-center justify-center">
                         {index + 1}
                       </div>
-                      <div>
-                        {/* Display the code block */}
+                      <div className="flex-1">
                         <CodeDisplay
                           code={block.blockCode}
-                          // currentExplanation={block.explanation} // Ensure this is being passed and rendered in CodeDisplay
                         />
                       </div>
                     </div>
@@ -171,28 +186,35 @@ ${code}`,
                 <div className="flex justify-end mb-4">
                   <button
                     onClick={handleToggleView}
-                    className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
                   >
                     {showAudioVisualizer ? (
-                      <MessageSquare className="w-6 h-6" />
+                      <>
+                        <MessageSquare className="w-5 h-5" />
+                        <span>Show Transcript</span>
+                      </>
                     ) : (
-                      <Volume2 className="w-6 h-6" />
+                      <>
+                        <Volume2 className="w-5 h-5" />
+                        <span>Show Visualizer</span>
+                      </>
                     )}
                   </button>
                 </div>
-                {showAudioVisualizer ? (
-                  <AudioVisualizer
-                    isRecording={isPlaying}
-                    onVisualizerReady={(analyser) => {
-                      // Handle the analyser node if needed
-                    }}
-                  />
-                ) : (
-                  <TranscriptChat
-                    explanations={explanations}
-                    currentStep={currentStep}
-                  />
-                )}
+                
+                <div className="h-[500px]">
+                  {showAudioVisualizer ? (
+                    <AudioVisualizer
+                      isRecording={isRecording}
+                      onVisualizerReady={handleVisualizerReady}
+                    />
+                  ) : (
+                    <TranscriptChat
+                      explanations={explanations}
+                      currentStep={currentStep}
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
