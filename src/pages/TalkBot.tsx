@@ -359,7 +359,7 @@ function TalkBot() {
               </select>
             </div>
 
-            {/* Audio Playback Controls */}
+            {/*
             {audioUrl && (
               <div className="mt-4 flex justify-center items-center gap-4">
                 <button
@@ -380,7 +380,7 @@ function TalkBot() {
                   Stop
                 </button>
               </div>
-            )}
+            )} */}
           </>
         )}
       </div>
