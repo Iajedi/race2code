@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
+import { AudioVisualizer } from '../components/AudioVisualizer';
 
 const OPENAI_API_KEY = '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';
 
@@ -28,6 +29,7 @@ function App() {
   const [speed, setSpeed] = useState(3000); // 3 seconds per step
   const [explanations, setExplanations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAudioVisualizer, setShowAudioVisualizer] = useState(false); // State to toggle between AudioVisualizer and TranscriptChat
 
   const fetchExplanations = async (code: string) => {
     if (!code) return;
@@ -124,6 +126,10 @@ ${code}`,
     setCurrentStep(blockIndex);
   };
 
+  const handleToggleView = () => {
+    setShowAudioVisualizer(!showAudioVisualizer);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -160,12 +166,33 @@ ${code}`,
                 </div>
               </div>
 
-              {/* Right side - Transcript Chat */}
+              {/* Right side - Toggle between AudioVisualizer and TranscriptChat */}
               <div className="bg-gray-800 rounded-lg p-6">
-                <TranscriptChat
-                  explanations={explanations}
-                  currentStep={currentStep}
-                />
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={handleToggleView}
+                    className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+                  >
+                    {showAudioVisualizer ? (
+                      <MessageSquare className="w-6 h-6" />
+                    ) : (
+                      <Volume2 className="w-6 h-6" />
+                    )}
+                  </button>
+                </div>
+                {showAudioVisualizer ? (
+                  <AudioVisualizer
+                    isRecording={isPlaying}
+                    onVisualizerReady={(analyser) => {
+                      // Handle the analyser node if needed
+                    }}
+                  />
+                ) : (
+                  <TranscriptChat
+                    explanations={explanations}
+                    currentStep={currentStep}
+                  />
+                )}
               </div>
             </div>
 
