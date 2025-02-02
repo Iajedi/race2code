@@ -42,8 +42,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { GameProvider, useGameContext } from '../providers/GameProvider';
 import LoadingScreen from '../components/LoadingScreen';
 import MCQ from './MCQ';
-import Modal from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
+import Programming from './Programming';
 
 export default function GameWrapper() {
   return (
@@ -127,7 +127,6 @@ function RacingGame(props: RacingGameProps) {
             return {
               ...prev,
               countdownValue: 'GO!',
-              velocity: 600, // Set initial velocity on GO!
             };
           }
           // If current value is 'GO!', end countdown
@@ -155,17 +154,7 @@ function RacingGame(props: RacingGameProps) {
 
   // Add a reset function to handle game restart
   const handleReset = (): void => {
-    // Cancel any ongoing animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    // Reset the last update time
-    lastUpdateTimeRef.current = Date.now();
-    // Reset the game state to initial values
-    setGameState(INITIAL_STATE);
-    setScore(0)
-    // Start a new animation frame
-    animationFrameRef.current = requestAnimationFrame(updatePhysics);
+    window.location.reload();
   };
 
   // Start physics loop when component mounts or resets
@@ -175,7 +164,9 @@ function RacingGame(props: RacingGameProps) {
       cancelAnimationFrame(animationFrameRef.current);
     }
     // Reset the last update time
-    lastUpdateTimeRef.current = Date.now();
+        setScore(0)
+    // Start a new animation frame
+    animationFrameRef.current = requestAnimationFrame(updatePhysics);lastUpdateTimeRef.current = Date.now();
     // Start the physics loop
     animationFrameRef.current = requestAnimationFrame(updatePhysics);
 
@@ -414,10 +405,7 @@ function RacingGame(props: RacingGameProps) {
         />
 
         {question &&
-          (question.isMCQ ? <MCQ /> : <div className="w-full h-full flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
-            <h2 className="text-xl font-semibold w-full text-left text-white">Programming Question</h2>
-            <div className="h-100 w-full"></div>
-          </div>)}
+          (question.isMCQ ? <MCQ /> : <Programming/>)}
       </div>
     </div>
   );
