@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
 
@@ -20,6 +21,8 @@ for (let i = 0; i < 5; i++) {
 console.log(result);`;
 
 function App() {
+  const loction = useLocation();
+  const uploadedCode = loction.state?.code;
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(3000); // 3 seconds per step
@@ -27,6 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchExplanations = async (code: string) => {
+    if (!code) return;
     setIsLoading(true);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -36,11 +40,22 @@ function App() {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'user',
-              content: `Explain the following code step by step. For each block of code, provide:
+              content: `
+              
+*Important:** Do not use markdown, backticks (\`\`\`), or code blocks in the explanation. Return the explanation as plain text.
+
+Explain the following code given the following rules:
+1. **Split the code into logical blocks** based on function definitions, loops, conditionals, and key expressions. 
+2. Each block should be **at least 2-3 lines** but **no longer than 10 lines**.
+3. If a function has multiple parts (e.g., base case and recursive case), **split them separately**.
+4. For loops, **include all iterations** in one block.
+5. For variable initialization, **group related statements**.
+              
+For each block of code, provide:
 1. A brief description of the block.
 2. Key programming concepts used.
 3. Any notable code patterns or structures.
@@ -80,8 +95,8 @@ ${code}`,
 
   // Fetch explanations when the component mounts
   useEffect(() => {
-    fetchExplanations(codeExample);
-  }, []);
+    fetchExplanations(uploadedCode);
+  }, [uploadedCode]);
 
   // Auto-play logic
   useEffect(() => {
