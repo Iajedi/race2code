@@ -1,3 +1,4 @@
+// src/pages/StartScreen.tsx
 import { useNavigate } from 'react-router-dom';
 import NavButton from '../components/NavButton';
 
@@ -18,11 +19,19 @@ const StartScreen: React.FC = () => {
         <p className="text-xl text-gray-300 mb-8">
           Are you ready to hit the track?
         </p>
+
         <NavButton 
           destination='/courses'
         >
           Start Racing
         </NavButton>
+
+        <div className="h-4"></div>
+
+        <NavButton destination='/upload'>
+          Talk with GPTeacher
+        </NavButton>
+
       </div>
     </div>
   );

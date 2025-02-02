@@ -11,7 +11,9 @@ import MCQ from './pages/MCQ';
 import Programming from './pages/Programming';
 import StartScreen from './pages/StartScreen';
 import CourseSelection from './pages/CourseSelection';
+import TalkBot from './pages/TalkBot';
 import GameWrapper from './pages/game';
+import Upload from './pages/upload';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
 
@@ -32,6 +34,8 @@ function App() {
         <Route path="/programming" element={<Programming />} />
         <Route path="/home" element={<Home />} />
         <Route path="/courses" element={<CourseSelection />} />
+        <Route path="/talkbot" element={<TalkBot />} />
+        <Route path="/upload" element={<Upload />} />
         {/* <Route path="/game" element={<GameWrapper />} /> */}
         <Route path="*" element={<NotFound />} />
       </Routes>
