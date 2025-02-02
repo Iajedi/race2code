@@ -1,4 +1,5 @@
 import './App.css'
+import VoiceWidget from "../components/VoiceWidget";
 // <<<<<<< HEAD
 // import { Routes, Route, Link, useNavigate } from "react-router-dom";
 // import RacingGame from './pages/Racing';
