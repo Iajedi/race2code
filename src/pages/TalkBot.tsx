@@ -27,7 +27,13 @@ function TalkBot() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(3000); // 3 seconds per step
-  const [explanations, setExplanations] = useState([]);
+  interface Explanation {
+    blockCode: string;
+    explanation: string;
+    detailedExplanation?: string;
+  }
+
+  const [explanations, setExplanations] = useState<Explanation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAudioVisualizer, setShowAudioVisualizer] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -36,9 +42,77 @@ function TalkBot() {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
-  const handleTranscript = (transcript: string) => {
+  const handleTranscript = async (transcript: string) => {
     setTranscript(transcript);
     console.log('Transcript:', transcript);
+  
+    // Create a string containing all blocks with their indices
+    const allBlocksContext = explanations.map((block, index) => `
+      Block ${index + 1}:
+      ${block.blockCode}
+    `).join('\n\n');
+    
+    // Enhanced prompt that includes all blocks of code
+    const prompt = `
+      Context: The user has access to the following blocks of code:
+  
+      ${allBlocksContext}
+    
+      Based on their question in the transcript below, identify which block(s) of code they're asking about 
+      and provide a detailed explanation focusing on the aspects they're asking about.
+  
+      Transcript: ${transcript}
+
+      Rules: Provide a clear explanation in plain text as if you were a teacher explaining it to a student. Let the explanation be more natural and conversational, instead of being stiff and formal (imagine you're actually talking to a student face-to-face instead of writing an essay). Do not use special characters, bullet points, or formatting. Ensure the explanation is easy to understand and directly answers the question.
+  
+      Please provide:
+      1. Which block(s) of code the question relates to
+      2. A clear explanation of how the relevant code works
+      3. Specific answers to any points raised in the transcript
+    `;
+  
+    console.log('Enhanced prompt:', prompt);
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+        }),
+      });
+  
+      if (!response.ok) throw new Error('Failed to fetch detailed explanation');
+  
+      const data = await response.json();
+      const detailedExplanation = data.choices[0].message.content;
+
+      console.log('here');
+  
+      // Update the explanations for the current step
+      setExplanations(prevExplanations => {
+        const newExplanations = [...prevExplanations];
+        newExplanations[currentStep] = {
+          ...newExplanations[currentStep],
+          detailedExplanation: detailedExplanation
+        };
+        return newExplanations;
+      });
+
+      console.log('Detailed explanation:', detailedExplanation);
+  
+    } catch (err) {
+      console.error('Error fetching detailed explanation:', err);
+    }
   };
 
   const fetchExplanations = async (code: string) => {
