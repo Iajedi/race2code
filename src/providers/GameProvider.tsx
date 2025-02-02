@@ -3,9 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 
 // Create the context
 const GameContext = createContext<any>(null);
-
-const API_KEY = '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'
-
 interface MCQQuestion {
   isMCQ: true;
   question: string;

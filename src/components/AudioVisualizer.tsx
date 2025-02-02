@@ -1,7 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-
-const OPENAI_API_KEY = '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';
-
 interface AudioVisualizerProps {
   isRecording: boolean;
   onVisualizerReady: (analyser: AnalyserNode) => void;
