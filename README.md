@@ -1,5 +1,9 @@
-## Race2Code: The Interactive Programming Game
+# Race2Code: The Interactive Programming Game
+### 🎉IC Hack 25: JetBrains Sponsor Category Winner🎉
+*Category*: No-Code/Low-Code Computer Science Education Solutions
+
 <img src="https://raw.githubusercontent.com/Iajedi/race2code/refs/heads/main/src/assets/wallpaper.png" alt="Race2Code wallpaper" style="width:50%; height:auto;">
+
 **Race2Code** is an interactive game that helps people pick up programming easily through **fill-in-the-blank** and **multiple-choice questions**.
 
 ### Customizable Topics
