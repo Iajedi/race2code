@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
@@ -7,19 +7,11 @@ import { AudioVisualizer } from '../components/AudioVisualizer';
 
 const OPENAI_API_KEY = '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';
 
-// Example code to explain
-const codeExample = `function fibonacci(n) {
-  if (n <= 1) return n;
-  return fibonacci(n - 1) + fibonacci(n - 2);
+interface Explanation {
+  blockCode: string;
+  explanation: string;
+  detailedExplanation?: string;
 }
-
-// Calculate first 5 fibonacci numbers
-const result = [];
-for (let i = 0; i < 5; i++) {
-  result.push(fibonacci(i));
-}
-
-console.log(result);`;
 
 function TalkBot() {
   const location = useLocation();
@@ -27,12 +19,6 @@ function TalkBot() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(3000); // 3 seconds per step
-  interface Explanation {
-    blockCode: string;
-    explanation: string;
-    detailedExplanation?: string;
-  }
-
   const [explanations, setExplanations] = useState<Explanation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAudioVisualizer, setShowAudioVisualizer] = useState(false);
@@ -41,18 +27,51 @@ function TalkBot() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const generateSpeech = async (text: string) => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: text,
+          voice: 'alloy',
+          speed: 1.0,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
+
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        audioRef.current.play();
+      }
+    } catch (err) {
+      console.error('Error generating speech:', err);
+    }
+  };
 
   const handleTranscript = async (transcript: string) => {
     setTranscript(transcript);
     console.log('Transcript:', transcript);
   
-    // Create a string containing all blocks with their indices
     const allBlocksContext = explanations.map((block, index) => `
       Block ${index + 1}:
       ${block.blockCode}
     `).join('\n\n');
     
-    // Enhanced prompt that includes all blocks of code
     const prompt = `
       Context: The user has access to the following blocks of code:
   
@@ -63,15 +82,15 @@ function TalkBot() {
   
       Transcript: ${transcript}
 
-      Rules: Provide a clear explanation in plain text as if you were a teacher explaining it to a student. Let the explanation be more natural and conversational, instead of being stiff and formal (imagine you're actually talking to a student face-to-face instead of writing an essay). Do not use special characters, bullet points, or formatting. Ensure the explanation is easy to understand and directly answers the question.
+      Rules: Provide a clear explanation in plain text as if you were a teacher explaining it to a student. 
+      Let the explanation be more natural and conversational, instead of being stiff and formal. 
+      Do not use special characters, bullet points, or formatting. 
+      Ensure the explanation is easy to understand and directly answers the question. You can use metaphors or examples to make it easier to understand.
+      Do not add headers or bullet points like "1. 2. 3." or "A. B. C.", etc, during the explanation.
   
-      Please provide:
-      1. Which block(s) of code the question relates to
-      2. A clear explanation of how the relevant code works
-      3. Specific answers to any points raised in the transcript
+      Please provide a specific answer to any points or questions raised in the transcript.
     `;
   
-    console.log('Enhanced prompt:', prompt);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -80,7 +99,7 @@ function TalkBot() {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4',
           messages: [
             {
               role: 'user',
@@ -95,10 +114,7 @@ function TalkBot() {
   
       const data = await response.json();
       const detailedExplanation = data.choices[0].message.content;
-
-      console.log('here');
   
-      // Update the explanations for the current step
       setExplanations(prevExplanations => {
         const newExplanations = [...prevExplanations];
         newExplanations[currentStep] = {
@@ -108,7 +124,9 @@ function TalkBot() {
         return newExplanations;
       });
 
-      console.log('Detailed explanation:', detailedExplanation);
+      // Generate speech from the detailed explanation
+      console.log('Detailed Explanation:', detailedExplanation);
+      await generateSpeech(detailedExplanation);
   
     } catch (err) {
       console.error('Error fetching detailed explanation:', err);
@@ -126,32 +144,29 @@ function TalkBot() {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4',
           messages: [
             {
               role: 'user',
               content: `
+              Explain the following code given the following rules:
+              1. Split the code into logical blocks based on function definitions, loops, conditionals, and key expressions. 
+              2. Each block should be at least 2-3 lines but no longer than 10 lines.
+              3. If a function has multiple parts (e.g., base case and recursive case), split them separately.
+              4. For loops, include all iterations in one block.
+              5. For variable initialization, group related statements.
               
-*Important:** Do not use markdown, backticks (\`\`\`), or code blocks in the explanation. Return the explanation as plain text.
+              For each block of code, provide:
+              1. A brief description of the block.
+              2. Key programming concepts used.
+              3. Any notable code patterns or structures.
 
-Explain the following code given the following rules:
-1. **Split the code into logical blocks** based on function definitions, loops, conditionals, and key expressions. 
-2. Each block should be **at least 2-3 lines** but **no longer than 10 lines**.
-3. If a function has multiple parts (e.g., base case and recursive case), **split them separately**.
-4. For loops, **include all iterations** in one block.
-5. For variable initialization, **group related statements**.
-              
-For each block of code, provide:
-1. A brief description of the block.
-2. Key programming concepts used.
-3. Any notable code patterns or structures.
+              Return the explanation as an array of objects, where each object contains:
+              - blockCode: the block of code being explained
+              - explanation: the explanation of that block.
 
-Return the explanation as an array of objects, where each object contains:
-- blockCode: the block of code being explained
-- explanation: the explanation of that block.
-
-Code:
-${code}`,
+              Code:
+              ${code}`,
             },
           ],
           temperature: 0.7,
@@ -161,8 +176,6 @@ ${code}`,
       if (!response.ok) throw new Error('Failed to fetch explanations');
 
       const rawData = await response.json();
-      console.log('Raw response data:', rawData);
-
       const explanationString = rawData.choices[0].message.content;
       const sanitizedString = explanationString.replace(/[\x00-\x1F\x7F]/g, '');
       const responseData = JSON.parse(sanitizedString);
@@ -191,6 +204,14 @@ ${code}`,
     }
     return () => clearTimeout(timer);
   }, [currentStep, isPlaying, speed, explanations]);
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -222,7 +243,6 @@ ${code}`,
 
   const handleToggleView = () => {
     if (showAudioVisualizer && isRecording) {
-      // Clean up audio stream when switching away from visualizer
       stream?.getTracks().forEach(track => track.stop());
       setStream(null);
       setIsRecording(false);
@@ -234,6 +254,13 @@ ${code}`,
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-center">Interactive Code Explanation</h1>
+
+        <audio
+          ref={audioRef}
+          className="hidden"
+          controls
+          onEnded={() => setIsPlaying(false)}
+        />
 
         {isLoading ? (
           <div className="text-center text-gray-400">Loading explanations from OpenAI...</div>
@@ -254,9 +281,7 @@ ${code}`,
                         {index + 1}
                       </div>
                       <div className="flex-1">
-                        <CodeDisplay
-                          code={block.blockCode}
-                        />
+                        <CodeDisplay code={block.blockCode} />
                       </div>
                     </div>
                   ))}
@@ -287,14 +312,14 @@ ${code}`,
                 <div className="h-[500px]">
                   {showAudioVisualizer ? (
                     <AudioVisualizer
-                        isRecording={isRecording}
-                        onVisualizerReady={handleVisualizerReady}
-                        onRecordingComplete={setAudioBlob}
-                        onTranscript={handleTranscript}
-                        onTranscriptionError={console.error}
-                        isTranscribing={isTranscribing}
-                        setIsTranscribing={setIsTranscribing}                  
-                  />
+                      isRecording={isRecording}
+                      onVisualizerReady={handleVisualizerReady}
+                      onRecordingComplete={setAudioBlob}
+                      onTranscript={handleTranscript}
+                      onTranscriptionError={console.error}
+                      isTranscribing={isTranscribing}
+                      setIsTranscribing={setIsTranscribing}                  
+                    />
                   ) : (
                     <TranscriptChat
                       explanations={explanations}
@@ -333,6 +358,29 @@ ${code}`,
                 <option value={5000}>Slow</option>
               </select>
             </div>
+
+            {/* Audio Playback Controls */}
+            {audioUrl && (
+              <div className="mt-4 flex justify-center items-center gap-4">
+                <button
+                  onClick={() => audioRef.current?.play()}
+                  className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
+                >
+                  Play Explanation
+                </button>
+                <button
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.pause();
+                      audioRef.current.currentTime = 0;
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-500 rounded hover:bg-gray-600"
+                >
+                  Stop
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
