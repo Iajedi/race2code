@@ -10,6 +10,7 @@ import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import MCQ from './pages/MCQ';
 import Programming from './pages/Programming';
 import StartScreen from './pages/StartScreen';
+import CourseSelection from './pages/CourseSelection';
 import GameWrapper from './pages/game';
 
 const NotFound = () => <h2>404 - Page Not Found</h2>;
@@ -30,6 +31,7 @@ function App() {
         <Route path="/mcq" element={<MCQ />} />
         <Route path="/programming" element={<Programming />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/courses" element={<CourseSelection />} />
         {/* <Route path="/game" element={<GameWrapper />} /> */}
         <Route path="*" element={<NotFound />} />
       </Routes>
