@@ -22,7 +22,7 @@ export const CodeDisplay: React.FC<CodeDisplayProps> = ({ code, currentExplanati
   };
 
   return (
-    <div className="relative font-mono text-sm">
+    <div className="relative font-mono text-sm normal-case">
       {/* Highlight lines */}
       <div className="absolute inset-0 pointer-events-none">
         {lineNumbers.map((lineNum) => (

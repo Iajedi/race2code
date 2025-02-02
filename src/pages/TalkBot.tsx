@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, Volume2, MessageSquare } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
 import { AudioVisualizer } from '../components/AudioVisualizer';
@@ -14,6 +14,7 @@ interface Explanation {
 }
 
 function TalkBot() {
+  const navigate = useNavigate();
   const location = useLocation();
   const uploadedCode = location.state?.code;
   const [currentStep, setCurrentStep] = useState(0);
@@ -66,12 +67,12 @@ function TalkBot() {
   const handleTranscript = async (transcript: string) => {
     setTranscript(transcript);
     console.log('Transcript:', transcript);
-  
+
     const allBlocksContext = explanations.map((block, index) => `
       Block ${index + 1}:
       ${block.blockCode}
     `).join('\n\n');
-    
+
     const prompt = `
       Context: The user has access to the following blocks of code:
   
@@ -90,7 +91,7 @@ function TalkBot() {
   
       Please provide a specific answer to any points or questions raised in the transcript.
     `;
-  
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -109,12 +110,12 @@ function TalkBot() {
           temperature: 0.7,
         }),
       });
-  
+
       if (!response.ok) throw new Error('Failed to fetch detailed explanation');
-  
+
       const data = await response.json();
       const detailedExplanation = data.choices[0].message.content;
-  
+
       setExplanations(prevExplanations => {
         const newExplanations = [...prevExplanations];
         newExplanations[currentStep] = {
@@ -127,7 +128,7 @@ function TalkBot() {
       // Generate speech from the detailed explanation
       console.log('Detailed Explanation:', detailedExplanation);
       await generateSpeech(detailedExplanation);
-  
+
     } catch (err) {
       console.error('Error fetching detailed explanation:', err);
     }
@@ -230,7 +231,7 @@ function TalkBot() {
     try {
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(audioStream);
-      
+
       const audioContext = analyser.context;
       const source = audioContext.createMediaStreamSource(audioStream);
       source.connect(analyser);
@@ -308,7 +309,7 @@ function TalkBot() {
                     )}
                   </button>
                 </div>
-                
+
                 <div className="h-[500px]">
                   {showAudioVisualizer ? (
                     <AudioVisualizer
@@ -318,7 +319,7 @@ function TalkBot() {
                       onTranscript={handleTranscript}
                       onTranscriptionError={console.error}
                       isTranscribing={isTranscribing}
-                      setIsTranscribing={setIsTranscribing}                  
+                      setIsTranscribing={setIsTranscribing}
                     />
                   ) : (
                     <TranscriptChat
@@ -357,6 +358,23 @@ function TalkBot() {
                 <option value={3000}>Normal</option>
                 <option value={5000}>Slow</option>
               </select>
+
+              <button
+                onClick={() => {
+                  navigate("/game", {
+                    state: {
+                      progStr: explanations.map((block, index) => `
+                  Block ${index + 1}:
+                  ${block.blockCode}
+                `).join('\n\n')
+                    }
+                  })
+                }}
+                className="px-4 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors"
+              >
+                Generate Game
+              </button>
+
             </div>
 
             {/*

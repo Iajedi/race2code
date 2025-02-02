@@ -42,12 +42,15 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { GameProvider, useGameContext } from '../providers/GameProvider';
 import LoadingScreen from '../components/LoadingScreen';
 import MCQ from './MCQ';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Programming from './Programming';
 
 export default function GameWrapper() {
+  const location = useLocation();
+  const { progStr } = location.state || {};
+  console.log(progStr);
   return (
-    <GameProvider>
+    <GameProvider progStr={progStr}>
       <RacingGame numCheckpoints={5} topicId='' />
     </GameProvider>
   );

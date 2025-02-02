@@ -24,12 +24,17 @@ interface ProgrammingQuestion {
   explanation: string;
 }
 
+interface GameProviderProps {
+  progStr: string | null;
+  children: React.ReactNode
+}
+
 export type Question = MCQQuestion | ProgrammingQuestion;
 
-export const GameProvider = ({ children }: { children: React.ReactNode }) => {
+export const GameProvider = (props: GameProviderProps) => {
   const [searchParams] = useSearchParams();
   const topic = searchParams.get('topic');
-  
+
   const [isQuestionsGenerated, setIsQuestionsGenerated] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -49,8 +54,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchQuestions = useCallback(async () => {
     console.log(`The topic is ${topic}`);
+    console.log(`The prog str is ${props.progStr}`);
     // Modify the prompt to request a mixture of MCQ and programming fill-in questions
-    const prompt = `
+    const prompt = !props.progStr ? `
     Generate an array of 5 computer science questions on the topic "${topic}".
     Make some of them multiple choice (where "isMCQ" is true) and at least one fill-in code question (where "isMCQ" is false).
     
@@ -74,6 +80,28 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     Return only valid JSON (no markdown).
+    ` : `
+    Generate an array of 5 computer science questions based on the given Python program, where questions are asked about each specific block in the program.
+    Each question should focus on a specific detail of one of the four code blocks.  
+
+    - Each question must focus on **concepts** related to a specific code block, such as recursion, loops, data structures, or OOP principles.  
+    - Do **not** ask about specific variable names, function names, or exact values.  
+    - Only ask about the theoretical concepts demonstrated in the code.  
+    - DO NOT ASK QUESTIONS REFERRING TO CODE BLOCKS.
+    - An example question would be "What is the purpose of a function <function used in the code>?"
+
+    Each question must follow this format:  
+    {  
+      "isMCQ": true,  
+      "question": "<question text about a specific detail of the block>",  
+      "options": ["A", "B", "C", "D"],  
+      "correctAnswerIdx": <number between 0 and 3>,  
+      "explanation": "<explanation>"
+    }
+      
+    Python program (in blocks):
+    You MUST return ONLY valid JSON (no markdown).
+    ${props.progStr}
     `;
 
     try {
@@ -126,7 +154,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
         setIsIncorrect
       }}
     >
-      {children}
+      {props.children}
     </GameContext.Provider>
   );
 };
