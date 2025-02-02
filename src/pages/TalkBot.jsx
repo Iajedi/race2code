@@ -3,9 +3,6 @@ import { Mic, MicOff } from 'lucide-react';
 import { CircularVisualizer } from '../components/CircularVisualizer';
 import { AudioWaveform } from '../components/AudioWaveform';
 import { useLocation } from 'react-router-dom';
-import VoiceWidget from '../components/VoiceWidget';
-
-import {  usePorcupine } from '@picovoice/porcupine-react';
 
 const OPENAI_API_KEY = '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';
 
@@ -18,7 +15,7 @@ const TalkBot = () => {
   const [hotwordDetected, setHotwordDetected] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [explanations, setExplanations] = useState({});
-  const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const mediaRecorderRef = useRef(null);
@@ -90,22 +87,6 @@ Code to analyze:
       analyzeFile();
     }
   }, [file]);
-
-  const { keywordDetection } = usePorcupine();
-  useEffect(() => {
-    if (keywordDetection) {
-      keywordDetection.onKeywordDetected = () => {
-        setHotwordDetected(true);
-        startRecording();
-      };
-    }
-  }, [keywordDetection]);
-
-  useEffect(() => {
-    if (keywordDetection.error) {
-      setError('Failed to initialize hotword detection.');
-    }
-  }, [keywordDetection.error]);
 
   const startRecording = async () => {
     try {
