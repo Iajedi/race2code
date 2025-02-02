@@ -3,7 +3,7 @@ import { Play, Pause, RotateCcw } from 'lucide-react';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
 
-const OPENAI_API_KEY = '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'; 
+const OPENAI_API_KEY = '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';
 
 // Example code to explain
 const codeExample = `function fibonacci(n) {
@@ -26,8 +26,7 @@ function App() {
   const [explanations, setExplanations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch explanations from ChatGPT
-  const fetchExplanations = async (code : any) => {
+  const fetchExplanations = async (code: string) => {
     setIsLoading(true);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -41,15 +40,14 @@ function App() {
           messages: [
             {
               role: 'user',
-              content: `Explain the following code step by step. For each step, provide:
-1. The line numbers being explained.
-2. A clear explanation of what the code does.
-3. Highlight any key programming concepts used.
+              content: `Explain the following code step by step. For each block of code, provide:
+1. A brief description of the block.
+2. Key programming concepts used.
+3. Any notable code patterns or structures.
 
-Return the response as a JSON array where each object has:
-- lineNumbers: an array of line numbers
-- text: the explanation
-- highlightWords: an array of keywords to highlight
+Return the explanation as an array of objects, where each object contains:
+- blockCode: the block of code being explained
+- explanation: the explanation of that block.
 
 Code:
 ${code}`,
@@ -60,9 +58,18 @@ ${code}`,
       });
 
       if (!response.ok) throw new Error('Failed to fetch explanations');
-      const data = await response.json();
-      const explanations = JSON.parse(data.choices[0].message.content);
-      setExplanations(explanations);
+
+      const rawData = await response.json();
+
+      // Log the raw response to check for formatting issues
+      console.log('Raw response data:', rawData);
+
+      // Attempt to clean and parse the explanation
+      const explanationString = rawData.choices[0].message.content;
+      const sanitizedString = explanationString.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+      const responseData = JSON.parse(sanitizedString);
+
+      setExplanations(responseData);
     } catch (err) {
       console.error(err);
       alert('Failed to fetch explanations. Check the console for details.');
@@ -98,22 +105,46 @@ ${code}`,
     setIsPlaying(false);
   };
 
+  const handleBlockSelect = (blockIndex: number) => {
+    setCurrentStep(blockIndex);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-center">Interactive Code Explanation</h1>
 
         {isLoading ? (
-          <div className="text-center text-gray-400">Loading explanations from ChatGPT...</div>
+          <div className="text-center text-gray-400">Loading explanations from OpenAI...</div>
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left side - Code Display */}
               <div className="bg-gray-800 rounded-lg p-6">
-                <CodeDisplay
-                  code={codeExample}
-                  currentExplanation={explanations[currentStep] || {}}
-                />
+                {/* Displaying the code blocks with numbered circles */}
+                <div>
+                  {explanations.map((block, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start space-x-4 p-4"
+                      style={{ backgroundColor: currentStep === index ? '#2d3748' : 'transparent' }}
+                      onClick={() => handleBlockSelect(index)}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-blue-500 text-center text-white flex items-center justify-center">
+                        {index + 1}
+                      </div>
+                      <div>
+                        {/* Display the code block */}
+                        <CodeDisplay
+                          code={block.blockCode}
+                          currentExplanation={block.explanation} // Ensure this is being passed and rendered in CodeDisplay
+                        />
+                        {/* You can also directly display the explanation here for debugging */}
+                        <div className="text-gray-300 mt-2">{block.explanation}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Right side - Transcript Chat */}
