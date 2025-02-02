@@ -23,7 +23,9 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "react-syntax-highlighter": "^15.6.1",
+    "syntax": "^1.6.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
