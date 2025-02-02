@@ -3,7 +3,7 @@ import "../App.css"
 import { useGameContext } from '../providers/GameProvider'
 import Modal from '../components/Modal'
 import { useNavigate } from 'react-router-dom'
-// const API_KEY = import.meta.env.OPENAI_API_KEY
+// const API_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
 // Function to randomly generate a multiple-choice question
 function MCQ(props: { nextQuestion: any }) {

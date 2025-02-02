@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CodeDisplay } from '../components/CodeDisplay';
 import { TranscriptChat } from '../components/TranscriptChat';
 import { AudioVisualizer } from '../components/AudioVisualizer';
-const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 interface Explanation {
   blockCode: string;
   explanation: string;
@@ -28,6 +28,8 @@ function TalkBot() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  console.log(OPENAI_API_KEY)
 
   const generateSpeech = async (text: string) => {
     try {

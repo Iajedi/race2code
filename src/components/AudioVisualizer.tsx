@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
 interface AudioVisualizerProps {
   isRecording: boolean;
