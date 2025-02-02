@@ -1,117 +1,208 @@
-import React, { useState } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useState, useEffect, useMemo } from 'react';
+import { useGameContext } from '../providers/GameProvider';
+import Modal from '../components/Modal';
 
-const initialSentence = [
-  { id: '1', type: 'text', content: 'The' },
-  { id: '2', type: 'blank', content: '' },
-  { id: '3', type: 'text', content: 'jumps over the' },
-  { id: '4', type: 'blank', content: '' },
-  { id: '5', type: 'text', content: '.' }
-];
+/**
+ * This component handles the "fill in the blanks" style coding questions.
+ * 
+ * Assumes the question object (when isMCQ === false) may have the structure:
+ * {
+ *   isMCQ: false,
+ *   question: string,
+ *   code: string,  // The code template with placeholders, e.g. "... ?0 ..."
+ *   fragments: string[],  // The array of fragments to drag
+ *   correctSequence: string[], // The correct arrangement for each placeholder
+ *   explanation: string
+ * }
+ */
 
-const initialWords = [
-  { id: 'word-1', content: 'quick' },
-  { id: 'word-2', content: 'lazy' },
-  { id: 'word-3', content: 'fox' },
-  { id: 'word-4', content: 'dog' }
-];
+export default function Programming() {
+  const {
+    questions,
+    currentQuestionIdx,
+    setCurrentQuestionIdx,
+    setScore,
+    setIsCorrect,
+    setIsIncorrect,
+  } = useGameContext();
 
-const DraggableWord = ({ word }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'WORD',
-    item: { id: word.id, content: word.content },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
+  const question = useMemo(() => questions[currentQuestionIdx], [questions, currentQuestionIdx]);
 
+  // Keep track of how the user arranges the code fragments
+  // If there are N placeholders, we track an array of length N 
+  // that stores which fragment index is currently dropped in each placeholder.
+  const [userAnswers, setUserAnswers] = useState<(string | null)[]>([]);
 
-  return (
-    <div
-      ref={drag}
-      className="bg-blue-200 p-2 rounded shadow cursor-move"
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-    >
-      {word.content}
-    </div>
-  );
-};
+  // For controlling explanation modal
+  const [isExplanationOpen, setIsExplanationOpen] = useState(false);
 
-const BlankSpace = ({ part, onDrop }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'WORD',
-    drop: (item) => onDrop(part.id, item),
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
+  // Initialize our userAnswers array whenever we switch to a new question
+  useEffect(() => {
+    if (question && !question.isMCQ) {
+      // If we have N placeholders in code, set them initially to null
+      // The question might store placeholders as '?0', '?1', etc.
+      // Or we just take the length of question.correctSequence for initialization
+      setUserAnswers(Array(question.correctSequence.length).fill(null));
+    }
+  }, [question]);
 
-  return (
-    <div
-      ref={drop}
-      className={`border-dashed border-2 border-gray-400 min-w-[60px] min-h-[40px] p-2 text-center bg-gray-100 rounded flex items-center justify-center ${isOver ? 'bg-green-100' : ''}`}
-    >
-      {part.content || '____'}
-    </div>
-  );
-};
-
-export default function DragDropSentenceGame() {
-  const [sentence, setSentence] = useState(initialSentence);
-  const [words, setWords] = useState(initialWords);
-
-  const handleDrop = (blankId, item) => {
-    setSentence((prev) =>
-      prev.map((part) => (part.id === blankId ? { ...part, content: item.content } : part))
-    );
-    setWords((prev) => prev.filter((word) => word.id !== item.id));
+  // Handler for dragging an option
+  // You might need more elaborate drag & drop logic, but here’s a simplified approach.
+  const handleDragStart = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData('text/plain', String(index));
   };
 
-  const returnToPool = (word) => {
-    setWords((prev) => [...prev, word]);
-    setSentence((prev) =>
-      prev.map((part) => (part.content === word.content ? { ...part, content: '' } : part))
+  // Handler for dropping an option in a placeholder
+  const handleDrop = (placeholderIdx: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const fragmentIndexStr = e.dataTransfer.getData('text/plain');
+    const fragmentIndex = parseInt(fragmentIndexStr, 10);
+
+    // If valid index, place the fragment into that placeholder
+    if (!isNaN(fragmentIndex)) {
+      const updatedAnswers = [...userAnswers];
+      updatedAnswers[placeholderIdx] = question.fragments[fragmentIndex];
+      setUserAnswers(updatedAnswers);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    // Needed so drop event is allowed
+    e.preventDefault();
+  };
+
+  // Check if user’s arrangement matches the correct arrangement
+  const handleSubmit = () => {
+    if (!question) return;
+    const isAllFilled = userAnswers.every((ans) => ans !== null);
+    if (!isAllFilled) {
+      // If not all placeholders are filled, mark as incorrect 
+      setIsIncorrect(true);
+      return;
+    }
+
+    const isMatch = userAnswers.every(
+      (fragment, idx) => fragment === question.correctSequence[idx]
     );
+
+    if (isMatch) {
+      setScore((prev: number) => prev + 1);
+      setIsCorrect(true);
+      setIsExplanationOpen(true);
+    } else {
+      setIsIncorrect(true);
+    }
+  };
+
+  // Move to the next question
+  const goNext = () => {
+    if (currentQuestionIdx < questions.length) {
+      setCurrentQuestionIdx((prev: number) => prev + 1);
+    }
+    setIsExplanationOpen(false);
+    setIsCorrect(false);
+    setIsIncorrect(false);
+  };
+
+  if (!question || question.isMCQ) {
+    return null;
+  }
+
+  /**
+   * Example code rendering strategy:
+   * We'll split the question.code string on placeholders like ?0, ?1, etc.
+   * Then each placeholder becomes a drop zone. This is just one approach.
+   * 
+   * E.g. If question.code = "function test() {\n  while (?0) {\n    ?1\n  }\n}"
+   * We split on the tokens `?0`, `?1`, ... and render placeholders in their place.
+   */
+  // A naive approach: For n placeholders, we do code.split('?0') -> placeholders[0], placeholder for ?0, placeholders[1], placeholder for ?1, ...
+  // For a robust approach, you'd do something more dynamic or use a template engine.
+  
+  // We'll assume the placeholders are in order: ?0, ?1, ?2...
+  const codeFragments = question.code.split(/\?(\d+)/); 
+  // This will split e.g. "some ?0 code ?1 stuff" into ["some ", "0", " code ", "1", " stuff"]
+  // The even indices in the array are code text, the odd indices are placeholder indices.
+
+  const renderCodeWithPlaceholders = () => {
+    const elements = [];
+    for (let i = 0; i < codeFragments.length; i++) {
+      // Even indices are code, odd are placeholder references
+      if (i % 2 === 0) {
+        // Just text
+        elements.push(
+          <span key={`text-${i}`}>{codeFragments[i]}</span>
+        );
+      } else {
+        // placeholder
+        const phIndex = parseInt(codeFragments[i], 10); 
+        const value = userAnswers[phIndex];
+        elements.push(
+          <span
+            key={`placeholder-${i}`}
+            onDrop={handleDrop(phIndex)}
+            onDragOver={handleDragOver}
+            style={{
+              display: 'inline-block',
+              minWidth: '70px',
+              minHeight: '24px',
+              backgroundColor: '#222',
+              color: '#fff',
+              margin: '0 4px',
+              borderRadius: '4px',
+              textAlign: 'center',
+              cursor: 'move',
+            }}
+          >
+            {value || 'DROP HERE'}
+          </span>
+        );
+      }
+    }
+    return elements;
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="p-4">
-        <h1 className="text-xl font-bold mb-4">Finish the Sentence</h1>
-        <div className="flex gap-2">
-          {sentence.map((part) =>
-            part.type === 'text' ? (
-              <span key={part.id}>{part.content}</span>
-            ) : (
-              <BlankSpace key={part.id} part={part} onDrop={handleDrop} />
-            )
-          )}
-        </div>
+    <div className="w-full flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
+      <h2 className="text-xl font-semibold w-full text-left text-white">
+        {question.question}
+      </h2>
 
-        <div className="flex gap-2 mt-4 border-t pt-2">
-          {words.map((word) => (
-            <DraggableWord key={word.id} word={word} />
-          ))}
-        </div>
+      {/* Code area */}
+      <pre className="text-white bg-black p-4 rounded-lg whitespace-pre-wrap max-w-3xl">
+        {renderCodeWithPlaceholders()}
+      </pre>
 
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">Return Words to Pool</h2>
-          <div className="flex gap-2">
-            {sentence
-              .filter((part) => part.type === 'blank' && part.content)
-              .map((part) => (
-                <button
-                  key={part.id}
-                  onClick={() => returnToPool({ id: `word-${part.content}`, content: part.content })}
-                  className="bg-red-200 p-2 rounded shadow cursor-pointer"
-                >
-                  {part.content}
-                </button>
-              ))}
+      <div className="flex flex-wrap gap-4 w-full items-center justify-center">
+        {/* Draggable fragments */}
+        {question.fragments.map((fragment: string, index: number) => (
+          <div
+            key={index}
+            draggable
+            onDragStart={handleDragStart(index)}
+            className="bg-blue-600 text-white px-4 py-2 rounded cursor-move"
+          >
+            {fragment}
           </div>
-        </div>
+        ))}
       </div>
-    </DndProvider>
+
+      <button
+        onClick={handleSubmit}
+        className="bg-yellow-500 text-black px-4 py-2 rounded-lg mt-4"
+      >
+        Check Answer
+      </button>
+
+      {/* Explanation Modal */}
+      <Modal
+        isOpen={isExplanationOpen}
+        onClose={goNext}
+        title="Explanation"
+        description={question.explanation || ""}
+      >
+        <div />
+      </Modal>
+    </div>
   );
 }
