@@ -21,7 +21,7 @@ for (let i = 0; i < 5; i++) {
 
 console.log(result);`;
 
-function App() {
+function TalkBot() {
   const location = useLocation();
   const uploadedCode = location.state?.code;
   const [currentStep, setCurrentStep] = useState(0);
@@ -32,6 +32,14 @@ function App() {
   const [showAudioVisualizer, setShowAudioVisualizer] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const handleTranscript = (transcript: string) => {
+    setTranscript(transcript);
+    console.log('Transcript:', transcript);
+  };
 
   const fetchExplanations = async (code: string) => {
     if (!code) return;
@@ -205,9 +213,14 @@ ${code}`,
                 <div className="h-[500px]">
                   {showAudioVisualizer ? (
                     <AudioVisualizer
-                      isRecording={isRecording}
-                      onVisualizerReady={handleVisualizerReady}
-                    />
+                        isRecording={isRecording}
+                        onVisualizerReady={handleVisualizerReady}
+                        onRecordingComplete={setAudioBlob}
+                        onTranscript={handleTranscript}
+                        onTranscriptionError={console.error}
+                        isTranscribing={isTranscribing}
+                        setIsTranscribing={setIsTranscribing}                  
+                  />
                   ) : (
                     <TranscriptChat
                       explanations={explanations}
@@ -253,4 +266,4 @@ ${code}`,
   );
 }
 
-export default App;
+export default TalkBot;
