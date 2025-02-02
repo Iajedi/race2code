@@ -11,6 +11,7 @@ const CourseSelection: React.FC = () => {
     "Programming Basics",
     "Python Basics",
     "C Basics",
+    "Java Data Structure Basics"
   ]
 
   const topicButtons = []

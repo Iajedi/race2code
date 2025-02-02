@@ -264,7 +264,7 @@ function TalkBot() {
         />
 
         {isLoading ? (
-          <div className="text-center text-gray-400">Loading explanations from OpenAI...</div>
+          <div className="text-center text-gray-400">Loading explanations...</div>
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
