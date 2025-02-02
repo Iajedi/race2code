@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 // Create the context
 const GameContext = createContext<any>(null);
+const API_KEY = import.meta.env.OPENAI_API_KEY
 interface MCQQuestion {
   isMCQ: true;
   question: string;

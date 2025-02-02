@@ -30,16 +30,44 @@ const Upload: React.FC = () => {
     }
   };
 
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) {
+      setFileName(event.target.files[0].name);
+      handleFileUpload(event);
+    }
+  };
+
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-black font-sans">
+    <div className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-black">
       <h2 className="text-2xl font-bold text-white mb-4">Upload Python File</h2>
-      <input type="file" accept=".py" onChange={handleFileUpload} className="mb-4" />
+      <div className="flex flex-col items-center justify-center gap-2">
+        {/* Hidden file input */}
+        <input
+          type="file"
+          accept=".py"
+          onChange={handleChange}
+          className="hidden"
+          id="fileInput"
+        />
+
+        {/* Styled Button */}
+        <label
+          htmlFor="fileInput"
+          className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md transition"
+        >
+          Upload Python File
+        </label>
+
+        {/* Show selected file name */}
+        {fileName && <p className="text-gray-700 mt-2">{fileName}</p>}
+      </div>
       <button
         onClick={handleProceed}
         disabled={!fileContent}
-        className={`px-6 py-2 rounded ${
-          fileContent ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 cursor-not-allowed'
-        } text-white`}
+        className={`px-6 py-2 rounded ${fileContent ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 cursor-not-allowed'
+          } text-white`}
       >
         Proceed
       </button>

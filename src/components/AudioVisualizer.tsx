@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
+const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY
+
 interface AudioVisualizerProps {
   isRecording: boolean;
   onVisualizerReady: (analyser: AnalyserNode) => void;
@@ -143,6 +145,8 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       setIsLocalRecording(false);
     }
   };
+
+  console.log(OPENAI_API_KEY);
 
   // Send audio to OpenAI's Whisper API
   const sendToWhisperAPI = async (audioBlob: Blob) => {
