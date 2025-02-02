@@ -53,15 +53,21 @@ const BlankSpace = ({ part, onDrop }) => {
     }),
   }));
 
+  const getBackgroundColor = () => {
+    if (part.isCorrect === true) return 'bg-green-400';  // Green if correct
+    if (part.isCorrect === false) return 'bg-red-400';   // Red if incorrect
+    if (isOver) return 'bg-green-100';                   // Hover effect
+    return 'bg-gray-600';                                // Default
+  };
+
   return (
     <span
       ref={drop}
-      className={`border-b-2 border-dashed border-gray-400 px-1 mx-1 text-center bg-gray-600 rounded-sm font-mono 
-        ${isOver ? 'bg-green-100' : ''}`}
+      className={`border-b-2 border-dashed border-gray-400 px-1 mx-1 text-center rounded-sm font-mono ${getBackgroundColor()}`}
       style={{
-        display: 'inline-flex',           // Align inline with text
-        minWidth: part.content ? 'auto' : '40px', // Adjust width based on content
-        padding: '2px 4px',               // Compact padding
+        display: 'inline-flex',
+        minWidth: part.content ? 'auto' : '40px',
+        padding: '2px 4px',
       }}
     >
       {part.content || '____'}
@@ -70,15 +76,18 @@ const BlankSpace = ({ part, onDrop }) => {
 };
 
 
+
 export default function Programming() {
   const [code, setCode] = useState([]);
   const [words, setWords] = useState([]);
+  const [generatedAnswers, setGeneratedAnswers] = useState([]); // Store correct answers
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
 
   const fetchCodeData = useCallback(async () => {
     const prompt = `Generate a different simple Python code snippet suitable for beginners. 
     Ensure it's unique from common examples like 'greet' functions. It can involve simple loops, conditionals, or basic math. 
     Keep it under 5 lines and return it as plain text. Do not include any comments or python tags.`;
-    
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -90,69 +99,112 @@ export default function Programming() {
         body: JSON.stringify({
           model: 'gpt-4o',
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.9
-        })
+          temperature: 0.9,
+        }),
       });
 
       const data = await response.json();
       const codeSnippet = data.choices[0].message.content.split('\n');
 
-      console.log('Code snippet:', codeSnippet);
-
       const generatedCode = [];
       const generatedWords = [];
+      const answers = []; // Store correct answers here
       let idCounter = 1;
+      const MAX_BLANKS = 3;
+      let blankCounter = 0;
 
-      const MAX_BLANKS = 3;  // Maximum number of blanks
-      let blankCounter = 0;  // Counter to track blanks created
-      
       codeSnippet.forEach((line) => {
         if (line.trim() === '') {
           generatedCode.push({ id: `${idCounter++}`, type: 'newline', content: '\n' });
         } else {
-          const wordsInLine = line.split(/(\s+)/); // Split by spaces while keeping them
-      
+          const wordsInLine = line.split(/(\s+)/);
           wordsInLine.forEach((word) => {
             if (/\s+/.test(word)) {
-              // If the word is whitespace, add it as text without blanking
               generatedCode.push({ id: `${idCounter++}`, type: 'text', content: word });
             } else if (blankCounter < MAX_BLANKS && Math.random() < 0.3) {
-              // Blank out non-whitespace words if limit isn't reached
-              generatedCode.push({ id: `${idCounter++}`, type: 'blank', content: '' });
+              const blankId = `${idCounter++}`;
+              generatedCode.push({ id: blankId, type: 'blank', content: '' });
               generatedWords.push({ id: `word-${idCounter}`, content: word });
+              answers.push({ id: blankId, correctContent: word }); // Store correct answer
               blankCounter++;
             } else {
-              // Add normal text if not blanked
               generatedCode.push({ id: `${idCounter++}`, type: 'text', content: word });
             }
           });
-      
           generatedCode.push({ id: `${idCounter++}`, type: 'newline', content: '\n' });
         }
       });
-      
-      
-      
+
       setCode(generatedCode);
       setWords(generatedWords);
+      setGeneratedAnswers(answers); // Save correct answers
 
     } catch (error) {
       console.error('Error fetching code:', error);
     }
-  }, [API_KEY]);
+  }, []);
 
   useEffect(() => {
     fetchCodeData(); // Initial load
   }, [fetchCodeData]);
 
-  const handleDrop = (blankId: any, item: { content: any; id: any; }) => {
-    setCode((prev) =>
-      prev.map((part) => (part.id === blankId ? { ...part, content: item.content } : part))
-    );
+  const handleDrop = (blankId, item) => {
+    setCode((prev) => {
+      const updatedCode = prev.map((part) =>
+        part.id === blankId ? { ...part, content: item.content } : part
+      );
+
+      // Check if all blanks are filled
+      const allFilled = updatedCode.every(
+        (part) => part.type !== 'blank' || part.content !== ''
+      );
+
+      if (allFilled) {
+        validateAnswers(updatedCode); // Trigger validation when all blanks are filled
+      }
+
+      return updatedCode;
+    });
+
     setWords((prev) => prev.filter((word) => word.id !== item.id));
   };
 
-  const returnToPool = (word: { id: string; content: any; }) => {
+  const validateAnswers = (currentCode) => {
+    setCode((prevCode) =>
+      prevCode.map((part) => {
+        if (part.type === 'blank') {
+          const answer = generatedAnswers.find((ans) => ans.id === part.id);
+          if (answer) {
+            return {
+              ...part,
+              isCorrect: part.content === answer.correctContent,
+            };
+          }
+        }
+        return part;
+      })
+    );
+  
+    const allCorrect = currentCode.every(
+      (part) =>
+        part.type !== 'blank' ||
+        part.content === generatedAnswers.find((ans) => ans.id === part.id)?.correctContent
+    );
+  
+    if (allCorrect) {
+      setFeedbackMessage('🎉 Great job! Loading new code...');
+      // 🚀 Reload after 2 seconds for better UX
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      setFeedbackMessage('❌ Some answers are incorrect. Try again!');
+    }
+  };
+  
+  
+
+  const returnToPool = (word) => {
     setWords((prev) => [...prev, word]);
     setCode((prev) =>
       prev.map((part) => (part.content === word.content ? { ...part, content: '' } : part))
@@ -163,13 +215,16 @@ export default function Programming() {
     <DndProvider backend={HTML5Backend}>
       <div className="p-4">
         <h1 className="text-xl font-bold mb-4">Complete the Code</h1>
-        <button onClick={fetchCodeData} className="bg-green-500 text-white p-2 rounded mb-4">Generate New Code</button>
 
         <pre className="bg-gray-800 text-white p-4 rounded">
           <code className="font-mono">
             {code.map((part) => {
               if (part.type === 'text') {
-                return <span key={part.id} className="text-green-400">{part.content} </span>;
+                return (
+                  <span key={part.id} className="text-green-400">
+                    {part.content}{' '}
+                  </span>
+                );
               } else if (part.type === 'blank') {
                 return <BlankSpace key={part.id} part={part} onDrop={handleDrop} />;
               } else if (part.type === 'newline') {
@@ -180,11 +235,23 @@ export default function Programming() {
           </code>
         </pre>
 
+        {feedbackMessage && (
+          <div
+            className={`mt-4 p-3 rounded text-center font-bold ${
+              feedbackMessage.includes('Great job') ? 'bg-green-300 text-green-800' : 'bg-red-300 text-red-800'
+            }`}
+          >
+            {feedbackMessage}
+          </div>
+        )}
+
+
         <div className="flex gap-2 mt-4 border-t pt-2">
           {words.map((word) => (
             <DraggableWord key={word.id} word={word} />
           ))}
         </div>
+
 
         <div className="mt-4">
           <h2 className="text-lg font-semibold">Return Words to Pool</h2>
@@ -194,7 +261,9 @@ export default function Programming() {
               .map((part) => (
                 <button
                   key={part.id}
-                  onClick={() => returnToPool({ id: `word-${part.content}`, content: part.content })}
+                  onClick={() =>
+                    returnToPool({ id: `word-${part.content}`, content: part.content })
+                  }
                   className="bg-red-200 p-2 rounded shadow cursor-pointer font-mono"
                 >
                   {part.content}
