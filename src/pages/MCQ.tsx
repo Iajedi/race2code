@@ -9,7 +9,7 @@ const API_KEY = 'sk-proj-rJvHqld5haUDHyz3jhzT3j5jwQTFg44OCCTA3J5IgkouO5yeBoMJcHM
 console.log(API_KEY)
 
 // Function to randomly generate a multiple-choice question
-function MCQ() {
+function MCQ(props: { nextQuestion: any }) {
   const navigate = useNavigate();
   const { questions, currentQuestionIdx, setCurrentQuestionIdx, setScore, setIsCorrect, setIsIncorrect } = useGameContext();
 
@@ -25,6 +25,7 @@ function MCQ() {
       if (isCorrectFirstTime) {
         setScore((prev: number) => prev + 1);
         setCurrentQuestionIdx((prev: number) => prev + 1);
+        props.nextQuestion();
       } else {
         setIsExplanationOpen(true);
         setIsCorrectFirstTime(true);
@@ -58,7 +59,8 @@ function MCQ() {
           if (currentQuestionIdx < questions.length) {
             setCurrentQuestionIdx((prev: number) => prev + 1);
           }
-          setIsExplanationOpen(false)
+          setIsExplanationOpen(false);
+          props.nextQuestion();
         }}
         title={'Explanation'}
         description={question?.explanation || ''}

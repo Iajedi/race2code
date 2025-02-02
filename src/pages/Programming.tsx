@@ -16,7 +16,7 @@ import Modal from '../components/Modal';
  * }
  */
 
-export default function Programming() {
+export default function Programming(props: { nextQuestion: any }) {
   const {
     questions,
     currentQuestionIdx,
@@ -102,6 +102,7 @@ export default function Programming() {
     setIsExplanationOpen(false);
     setIsCorrect(false);
     setIsIncorrect(false);
+    props.nextQuestion();
   };
 
   if (!question || question.isMCQ) {
@@ -163,7 +164,7 @@ export default function Programming() {
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
+    <div className="w-full h-100 flex flex-col items-center justify-around bg-green-800 p-4 gap-4">
       <h2 className="text-xl font-semibold w-full text-left text-white">
         {question.question}
       </h2>

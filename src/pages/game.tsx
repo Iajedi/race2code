@@ -54,6 +54,7 @@ export default function GameWrapper() {
 }
 
 function RacingGame(props: RacingGameProps) {
+  const navigate = useNavigate();
   const {
     isCorrect,
     setIsCorrect,
@@ -61,9 +62,7 @@ function RacingGame(props: RacingGameProps) {
     setIsIncorrect,
     questions,
     currentQuestionIdx,
-    setCurrentQuestionIdx,
-    score,
-    setScore
+    score
   } = useGameContext();
 
   const question = useMemo(
@@ -71,19 +70,12 @@ function RacingGame(props: RacingGameProps) {
     [questions, currentQuestionIdx]
   );
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    handleAccelerateStart();
-  }, [currentQuestionIdx]);
-
   useEffect(() => {
     if (isCorrect) {
       setIsIncorrect(false);
       const timer = setTimeout(() => {
         setIsCorrect(false);
       }, 1000);
-
 
       return () => clearTimeout(timer);
     }
@@ -99,7 +91,6 @@ function RacingGame(props: RacingGameProps) {
       return () => clearTimeout(timer);
     }
   }, [isIncorrect]);
-
   // Initialize state with type safety
   const [gameState, setGameState] = useState<GameState>({
     distance: 0,
@@ -127,6 +118,7 @@ function RacingGame(props: RacingGameProps) {
             return {
               ...prev,
               countdownValue: 'GO!',
+              velocity: 600, // Set initial velocity on GO!
             };
           }
           // If current value is 'GO!', end countdown
@@ -154,7 +146,16 @@ function RacingGame(props: RacingGameProps) {
 
   // Add a reset function to handle game restart
   const handleReset = (): void => {
-    window.location.reload();
+    // Cancel any ongoing animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    // Reset the last update time
+    lastUpdateTimeRef.current = Date.now();
+    // Reset the game state to initial values
+    setGameState(INITIAL_STATE);
+    // Start a new animation frame
+    animationFrameRef.current = requestAnimationFrame(updatePhysics);
   };
 
   // Start physics loop when component mounts or resets
@@ -164,9 +165,7 @@ function RacingGame(props: RacingGameProps) {
       cancelAnimationFrame(animationFrameRef.current);
     }
     // Reset the last update time
-        setScore(0)
-    // Start a new animation frame
-    animationFrameRef.current = requestAnimationFrame(updatePhysics);lastUpdateTimeRef.current = Date.now();
+    lastUpdateTimeRef.current = Date.now();
     // Start the physics loop
     animationFrameRef.current = requestAnimationFrame(updatePhysics);
 
@@ -254,106 +253,10 @@ function RacingGame(props: RacingGameProps) {
     }
   };
 
-  const handleAccelerateEnd = (): void => {
-    setGameState((prev) => ({ ...prev, isAccelerating: false }));
-  };
-
   return (
     <div className='w-full h-full bg-black flex flex-col items-center justify-center'>
       {/* Racing Scene - Added relative positioning and z-index management */}
-      <LoadingScreen isLoading={!question && currentQuestionIdx == 0 && !gameState.isGameComplete}/>
-      {(question || (questions.length > 0 && currentQuestionIdx >= questions.length)) && <div
-          className='w-full h-1/2 relative overflow-hidden'>
-          {/* Track - Lowered z-index */}
-          {!gameState.isGameComplete && (
-            <div className='absolute top-4 left-4 text-white text-lg font-bold z-30'>
-              Score: {score}
-            </div>
-          )}
-
-          <div
-            className='absolute inset-0 z-0'
-            style={{
-              // Replace the gradient with your image URL
-              backgroundImage: `url('src/assets/track.png')`,
-              backgroundRepeat: 'repeat-x',
-              backgroundSize: 'contain',
-              transform: `translateX(-${gameState.distance}px)`,
-              width: '800%', // Make sure we have enough room for the repeating background
-              height: '100%',
-              transition: 'transform 16ms linear',
-            }}
-          />
-
-          <div
-            className='absolute top-0 h-full z-10'
-            style={{
-              backgroundImage: `url('src/assets/finish_line.png')`,
-              width: '60px',
-              height: '600px',
-              left: `calc(50% + ${GAME_CONSTANTS.FINISH_LINE - gameState.distance
-                }px)`,
-            }}
-          />
-
-          {Array.from({ length: props.numCheckpoints }).map((_, index) => (
-            <div
-              className='absolute top-0 h-full w-8 bg-red-800 z-10'
-              key={index}
-              style={{
-                left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1)) *
-                  (index + 1) -
-                  gameState.distance
-                  }px)`,
-              }}></div>
-          ))}
-
-          {/* Car - Highest z-index and improved visibility */}
-          <div
-            className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20'
-            style={{
-              backgroundImage: `url('src/assets/car.png')`,
-              width: '200px',
-              height: '100px',
-            }}
-          />
-
-          {/* Question number indicator */}
-          {!gameState.isGameComplete && (
-            <div className='absolute bottom-4 right-4 text-white text-lg font-bold z-30'>
-              Q {gameState.currCheckpoint - 1} of {props.numCheckpoints}
-            </div>
-          )}
-
-          {gameState.countdownValue !== null && (
-            <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
-              <div
-                className='text-8xl font-bold text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] transform scale-150 transition-all duration-300'
-                style={{
-                  animation: 'countdown 1s ease',
-                  animationIterationCount: 'infinite',
-                  animationDuration: '1s',
-                }}>
-                {gameState.countdownValue}
-              </div>
-            </div>
-          )}
-
-          <div className='absolute inset-0 flex items-center justify-center z-100'>
-            {isCorrect && (
-              <div className='bg-green-500 rounded px-4 py-2'>
-                <p className='text-white'>Correct!</p>
-              </div>
-            )}
-            {isIncorrect && (
-              <div className='bg-red-500 rounded px-4 py-2'>
-                <p className='text-white'>Incorrect!</p>
-              </div>
-            )}
-          </div>
-        </div>
-      }
-
+      <LoadingScreen isLoading={!question && currentQuestionIdx == 0 && !gameState.isGameComplete} />
       {/* Game complete overlay */}
       {gameState.isGameComplete && (
         <div
@@ -365,20 +268,113 @@ function RacingGame(props: RacingGameProps) {
           }}>
           <div className='text-white text-4xl font-bold'>Finish!</div>
           <button
-            onClick={handleReset}
+            onClick={() => {
+              handleReset();
+              navigate("/");
+            }}
             className='px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 
                        transition-all duration-300 ease-in-out'>
-            Play Again
+            Back
           </button>
         </div>
       )}
+      {(question || (questions.length > 0 && currentQuestionIdx >= questions.length)) && <div
+        className='w-full h-1/2 relative overflow-hidden'>
+        {/* Track - Lowered z-index */}
+        {!gameState.isGameComplete && (
+          <div className='absolute top-4 left-4 text-white text-lg font-bold z-30'>
+            Score: {score}
+          </div>
+        )}
+
+        <div
+          className='absolute inset-0 z-0'
+          style={{
+            // Replace the gradient with your image URL
+            backgroundImage: `url('src/assets/track.png')`,
+            backgroundRepeat: 'repeat-x',
+            backgroundSize: 'contain',
+            transform: `translateX(-${gameState.distance}px)`,
+            width: '800%', // Make sure we have enough room for the repeating background
+            height: '100%',
+            transition: 'transform 16ms linear',
+          }}
+        />
+
+        <div
+          className='absolute top-0 h-full z-10'
+          style={{
+            backgroundImage: `url('src/assets/finish_line.png')`,
+            width: '60px',
+            height: '600px',
+            left: `calc(50% + ${GAME_CONSTANTS.FINISH_LINE - gameState.distance
+              }px)`,
+          }}
+        />
+
+        {Array.from({ length: props.numCheckpoints }).map((_, index) => (
+          <div
+            className='absolute top-0 h-full w-8 bg-red-800 z-10'
+            key={index}
+            style={{
+              left: `calc(50% + ${(GAME_CONSTANTS.FINISH_LINE / (props.numCheckpoints + 1)) *
+                (index + 1) -
+                gameState.distance
+                }px)`,
+            }}></div>
+        ))}
+
+        {/* Car - Highest z-index and improved visibility */}
+        <div
+          className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20'
+          style={{
+            backgroundImage: `url('src/assets/car.png')`,
+            width: '200px',
+            height: '100px',
+          }}
+        />
+
+        {/* Question number indicator */}
+        {!gameState.isGameComplete && (
+          <div className='absolute bottom-4 right-4 text-white text-lg font-bold z-30'>
+            Q {gameState.currCheckpoint - 1} of {props.numCheckpoints}
+          </div>
+        )}
+
+        {gameState.countdownValue !== null && (
+          <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
+            <div
+              className='text-8xl font-bold text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)] transform scale-150 transition-all duration-300'
+              style={{
+                animation: 'countdown 1s ease',
+                animationIterationCount: 'infinite',
+                animationDuration: '1s',
+              }}>
+              {gameState.countdownValue}
+            </div>
+          </div>
+        )}
+
+        <div className='absolute inset-0 flex items-center justify-center z-100 pointer-events-none'>
+          {isCorrect && (
+            <div className='bg-green-500 rounded px-4 py-2'>
+              <p className='text-white'>Correct!</p>
+            </div>
+          )}
+          {isIncorrect && (
+            <div className='bg-red-500 rounded px-4 py-2'>
+              <p className='text-white'>Incorrect!</p>
+            </div>
+          )}
+        </div>
+      </div>
+      }
 
       {/* Controls Container */}
       <div className='w-full bg-white relative overflow-hidden'>
         <div
-          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
-            gameState.isDoorClosed ? 'pointer-events-auto' : 'pointer-events-none'
-          }`}
+          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${gameState.isDoorClosed ? "pointer-events-auto" : "pointer-events-none"
+            }`}
           style={{
             backgroundImage: `url('src/assets/door_left.png')`,
             backgroundSize: '100% 100%',
@@ -405,7 +401,7 @@ function RacingGame(props: RacingGameProps) {
         />
 
         {question &&
-          (question.isMCQ ? <MCQ /> : <Programming/>)}
+          (question.isMCQ ? <MCQ nextQuestion={handleAccelerateStart} /> : <Programming nextQuestion={handleAccelerateStart} />)}
       </div>
     </div>
   );

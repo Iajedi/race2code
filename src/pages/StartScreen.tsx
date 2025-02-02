@@ -1,13 +1,13 @@
 // src/pages/StartScreen.tsx
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import NavButton from '../components/NavButton';
 
 const StartScreen: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const handleStartGame = () => {
-    navigate('/courses');
-  };
+  // const handleStartGame = () => {
+  //   navigate('/courses');
+  // };
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-black">
